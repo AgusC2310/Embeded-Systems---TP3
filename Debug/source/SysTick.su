@@ -1,0 +1,3 @@
+../source/SysTick.c:9:9:SysTick_Handler	8	static
+../source/SysTick.c:14:6:ADC_PISR	8	static
+../source/SysTick.c:27:6:SysTick_Init	4	static

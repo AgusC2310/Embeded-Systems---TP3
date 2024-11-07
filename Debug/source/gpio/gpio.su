@@ -1,0 +1,11 @@
+C:/Users/casas/OneDrive - ITBA/Material de Clases/Labo de Micros/ADC_DAC_code samples/ADC/CMSIS/core_cm4.h:1626:22:NVIC_EnableIRQ	16	static
+../source/gpio/gpio.c:29:6:gpioMode	32	static
+../source/gpio/gpio.c:69:6:gpioIRQ	24	static
+../source/gpio/gpio.c:92:6:gpioWrite	24	static
+../source/gpio/gpio.c:109:6:gpioToggle	24	static
+../source/gpio/gpio.c:123:6:gpioRead	24	static
+../source/gpio/gpio.c:132:9:PORTA_IRQHandler	24	static
+../source/gpio/gpio.c:143:9:PORTB_IRQHandler	24	static
+../source/gpio/gpio.c:154:9:PORTC_IRQHandler	24	static
+../source/gpio/gpio.c:166:9:PORTD_IRQHandler	24	static
+../source/gpio/gpio.c:178:9:PORTE_IRQHandler	24	static

@@ -1,0 +1,5 @@
+C:\Users\casas\OneDrive - ITBA\Material de Clases\Labo de Micros\ADC_DAC_code samples\ADC\CMSIS/core_cm4.h:1626:22:NVIC_EnableIRQ	16	static
+../source/pdb/pdb.c:12:6:pdb_init	32	static
+../source/pdb/pdb.c:39:6:do_software_trigger	4	static
+../source/pdb/pdb.c:43:6:pdb_set_delay	16	static
+../source/pdb/pdb.c:50:9:PDB0_IRQHandler	8	static

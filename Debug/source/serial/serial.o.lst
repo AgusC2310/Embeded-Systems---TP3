@@ -1,0 +1,254 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"serial.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "../source/serial/serial.c"
+  20              		.section	.text.serial_init,"ax",%progbits
+  21              		.align	1
+  22              		.global	serial_init
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	serial_init:
+  28              	.LFB123:
+   1:../source/serial/serial.c **** #include "serial.h"
+   2:../source/serial/serial.c **** /**
+   3:../source/serial/serial.c ****  * @file serial.c
+   4:../source/serial/serial.c ****  * @brief Serial communication driver for the K64F (UART)
+   5:../source/serial/serial.c ****  * @date 2024-10-06
+   6:../source/serial/serial.c ****  * 
+   7:../source/serial/serial.c ****  * @author Rafael Dalzotto
+   8:../source/serial/serial.c ****  */
+   9:../source/serial/serial.c **** 
+  10:../source/serial/serial.c **** #include "../uart2.h"
+  11:../source/serial/serial.c **** 
+  12:../source/serial/serial.c **** void serial_init(unsigned long baud_rate)
+  13:../source/serial/serial.c **** {
+  29              		.loc 1 13 1
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 8
+  32              		@ frame_needed = 1, uses_anonymous_args = 0
+  33 0000 80B5     		push	{r7, lr}
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 7, -8
+  36              		.cfi_offset 14, -4
+  37 0002 82B0     		sub	sp, sp, #8
+  38              		.cfi_def_cfa_offset 16
+  39 0004 00AF     		add	r7, sp, #0
+  40              		.cfi_def_cfa_register 7
+  41 0006 7860     		str	r0, [r7, #4]
+  14:../source/serial/serial.c ****     uart_init(0, baud_rate);
+  42              		.loc 1 14 5
+  43 0008 7968     		ldr	r1, [r7, #4]
+  44 000a 0020     		movs	r0, #0
+  45 000c FFF7FEFF 		bl	uart_init
+  15:../source/serial/serial.c **** }
+  46              		.loc 1 15 1
+  47 0010 00BF     		nop
+  48 0012 0837     		adds	r7, r7, #8
+  49              		.cfi_def_cfa_offset 8
+  50 0014 BD46     		mov	sp, r7
+  51              		.cfi_def_cfa_register 13
+  52              		@ sp needed
+  53 0016 80BD     		pop	{r7, pc}
+  54              		.cfi_endproc
+  55              	.LFE123:
+  57              		.section	.text.serial_print,"ax",%progbits
+  58              		.align	1
+  59              		.global	serial_print
+  60              		.syntax unified
+  61              		.thumb
+  62              		.thumb_func
+  64              	serial_print:
+  65              	.LFB124:
+  16:../source/serial/serial.c **** 
+  17:../source/serial/serial.c **** void serial_print(const char *str)
+  18:../source/serial/serial.c **** {
+  66              		.loc 1 18 1
+  67              		.cfi_startproc
+  68              		@ args = 0, pretend = 0, frame = 16
+  69              		@ frame_needed = 1, uses_anonymous_args = 0
+  70 0000 80B5     		push	{r7, lr}
+  71              		.cfi_def_cfa_offset 8
+  72              		.cfi_offset 7, -8
+  73              		.cfi_offset 14, -4
+  74 0002 84B0     		sub	sp, sp, #16
+  75              		.cfi_def_cfa_offset 24
+  76 0004 00AF     		add	r7, sp, #0
+  77              		.cfi_def_cfa_register 7
+  78 0006 7860     		str	r0, [r7, #4]
+  19:../source/serial/serial.c ****     uart_disable_tx_interrupt(0);
+  79              		.loc 1 19 5
+  80 0008 0020     		movs	r0, #0
+  81 000a FFF7FEFF 		bl	uart_disable_tx_interrupt
+  20:../source/serial/serial.c ****     uint8_t i = 0;
+  82              		.loc 1 20 13
+  83 000e 0023     		movs	r3, #0
+  84 0010 FB73     		strb	r3, [r7, #15]
+  21:../source/serial/serial.c ****     while (*(str + i) != '\0')
+  85              		.loc 1 21 11
+  86 0012 0AE0     		b	.L3
+  87              	.L4:
+  22:../source/serial/serial.c ****     {
+  23:../source/serial/serial.c ****         uart_load_buffer(0, *(str + i));
+  88              		.loc 1 23 35
+  89 0014 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+  90 0016 7A68     		ldr	r2, [r7, #4]
+  91 0018 1344     		add	r3, r3, r2
+  92              		.loc 1 23 9
+  93 001a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  94 001c 1946     		mov	r1, r3
+  95 001e 0020     		movs	r0, #0
+  96 0020 FFF7FEFF 		bl	uart_load_buffer
+  24:../source/serial/serial.c ****         i++;
+  97              		.loc 1 24 10
+  98 0024 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+  99 0026 0133     		adds	r3, r3, #1
+ 100 0028 FB73     		strb	r3, [r7, #15]
+ 101              	.L3:
+  21:../source/serial/serial.c ****     while (*(str + i) != '\0')
+ 102              		.loc 1 21 18
+ 103 002a FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 104 002c 7A68     		ldr	r2, [r7, #4]
+ 105 002e 1344     		add	r3, r3, r2
+  21:../source/serial/serial.c ****     while (*(str + i) != '\0')
+ 106              		.loc 1 21 12
+ 107 0030 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  21:../source/serial/serial.c ****     while (*(str + i) != '\0')
+ 108              		.loc 1 21 23
+ 109 0032 002B     		cmp	r3, #0
+ 110 0034 EED1     		bne	.L4
+  25:../source/serial/serial.c ****     }
+  26:../source/serial/serial.c ****     uart_enable_tx_interrupt(0);
+ 111              		.loc 1 26 5
+ 112 0036 0020     		movs	r0, #0
+ 113 0038 FFF7FEFF 		bl	uart_enable_tx_interrupt
+  27:../source/serial/serial.c **** }
+ 114              		.loc 1 27 1
+ 115 003c 00BF     		nop
+ 116 003e 1037     		adds	r7, r7, #16
+ 117              		.cfi_def_cfa_offset 8
+ 118 0040 BD46     		mov	sp, r7
+ 119              		.cfi_def_cfa_register 13
+ 120              		@ sp needed
+ 121 0042 80BD     		pop	{r7, pc}
+ 122              		.cfi_endproc
+ 123              	.LFE124:
+ 125              		.section	.text.serial_printf,"ax",%progbits
+ 126              		.align	1
+ 127              		.global	serial_printf
+ 128              		.syntax unified
+ 129              		.thumb
+ 130              		.thumb_func
+ 132              	serial_printf:
+ 133              	.LFB125:
+  28:../source/serial/serial.c **** 
+  29:../source/serial/serial.c **** void serial_printf(const char *format, ...)
+  30:../source/serial/serial.c **** {
+ 134              		.loc 1 30 1
+ 135              		.cfi_startproc
+ 136              		@ args = 4, pretend = 16, frame = 264
+ 137              		@ frame_needed = 1, uses_anonymous_args = 1
+ 138 0000 0FB4     		push	{r0, r1, r2, r3}
+ 139              		.cfi_def_cfa_offset 16
+ 140              		.cfi_offset 0, -16
+ 141              		.cfi_offset 1, -12
+ 142              		.cfi_offset 2, -8
+ 143              		.cfi_offset 3, -4
+ 144 0002 80B5     		push	{r7, lr}
+ 145              		.cfi_def_cfa_offset 24
+ 146              		.cfi_offset 7, -24
+ 147              		.cfi_offset 14, -20
+ 148 0004 C2B0     		sub	sp, sp, #264
+ 149              		.cfi_def_cfa_offset 288
+ 150 0006 00AF     		add	r7, sp, #0
+ 151              		.cfi_def_cfa_register 7
+  31:../source/serial/serial.c ****     va_list args;
+  32:../source/serial/serial.c ****     va_start(args, format);
+ 152              		.loc 1 32 5
+ 153 0008 07F58A73 		add	r3, r7, #276
+ 154 000c C7F80431 		str	r3, [r7, #260]
+  33:../source/serial/serial.c ****     char buffer[256];
+  34:../source/serial/serial.c ****     vsprintf(buffer, format, args);
+ 155              		.loc 1 34 5
+ 156 0010 3B1D     		adds	r3, r7, #4
+ 157 0012 D7F80421 		ldr	r2, [r7, #260]
+ 158 0016 D7F81011 		ldr	r1, [r7, #272]
+ 159 001a 1846     		mov	r0, r3
+ 160 001c FFF7FEFF 		bl	vsprintf
+  35:../source/serial/serial.c ****     serial_print(buffer);
+ 161              		.loc 1 35 5
+ 162 0020 3B1D     		adds	r3, r7, #4
+ 163 0022 1846     		mov	r0, r3
+ 164 0024 FFF7FEFF 		bl	serial_print
+  36:../source/serial/serial.c ****     va_end(args);
+  37:../source/serial/serial.c **** }
+ 165              		.loc 1 37 1
+ 166 0028 00BF     		nop
+ 167 002a 07F58477 		add	r7, r7, #264
+ 168              		.cfi_def_cfa_offset 24
+ 169 002e BD46     		mov	sp, r7
+ 170              		.cfi_def_cfa_register 13
+ 171              		@ sp needed
+ 172 0030 BDE88040 		pop	{r7, lr}
+ 173              		.cfi_restore 14
+ 174              		.cfi_restore 7
+ 175              		.cfi_def_cfa_offset 16
+ 176 0034 04B0     		add	sp, sp, #16
+ 177              		.cfi_restore 3
+ 178              		.cfi_restore 2
+ 179              		.cfi_restore 1
+ 180              		.cfi_restore 0
+ 181              		.cfi_def_cfa_offset 0
+ 182 0036 7047     		bx	lr
+ 183              		.cfi_endproc
+ 184              	.LFE125:
+ 186              		.text
+ 187              	.Letext0:
+ 188              		.file 2 "C:/nxp/MCUXpressoIDE_11.10.0_3148/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.10.0.2023
+ 189              		.file 3 "C:/nxp/MCUXpressoIDE_11.10.0_3148/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.10.0.2023
+ 190              		.file 4 "../source/serial/../uart2.h"
+ 191              		.file 5 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:00000000 serial.c
+C:\Users\casas\AppData\Local\Temp\ccv0APMH.s:21     .text.serial_init:00000000 $t
+C:\Users\casas\AppData\Local\Temp\ccv0APMH.s:27     .text.serial_init:00000000 serial_init
+C:\Users\casas\AppData\Local\Temp\ccv0APMH.s:58     .text.serial_print:00000000 $t
+C:\Users\casas\AppData\Local\Temp\ccv0APMH.s:64     .text.serial_print:00000000 serial_print
+C:\Users\casas\AppData\Local\Temp\ccv0APMH.s:126    .text.serial_printf:00000000 $t
+C:\Users\casas\AppData\Local\Temp\ccv0APMH.s:132    .text.serial_printf:00000000 serial_printf
+                           .group:00000000 wm4.0.1dcc4abb7b230aa9a5dadaa004994123
+                           .group:00000000 wm4.redlib_version.h.25.d2e865e22c1528eeae52d7d98a50fff1
+                           .group:00000000 wm4.libconfigarm.h.19.34723c94cbd19598192aa6b1e87fca41
+                           .group:00000000 wm4.stdint.h.31.58198de4ea930fb897655479091e17c7
+                           .group:00000000 wm4.stdbool.h.15.fddf1cb2402fd739d8e2516677869231
+                           .group:00000000 wm4.stdarg.h.28.d8f3211cadb58bc5b5d9912f510a3ed1
+                           .group:00000000 wm4.gpio.h.8.3b8dab8fd05527fe26c360fc8897e237
+                           .group:00000000 wm4.MK64F12.h.105.e884e5c80776532d2ec0f5c21e2ea7cb
+                           .group:00000000 wm4.core_cm4.h.42.42f38327ee0970d80f60117e6a3ba2b0
+                           .group:00000000 wm4.cmsis_gcc.h.36.39970cb43ce4b53c82644a1f9bc2eab9
+                           .group:00000000 wm4.core_cm4.h.223.7b48c9958ef5573320c4765074c8b0ce
+                           .group:00000000 wm4.system_MK64F12.h.109.c6d21568e03be21b21c922eb7345d6e3
+                           .group:00000000 wm4.MK64F12.h.475.9475ab1c0ace29480f556d9316131319
+                           .group:00000000 wm4.uart_k64_frdm.h.7.daad7da6bb0c433ac1106ba3952f7c1d
+
+UNDEFINED SYMBOLS
+uart_init
+uart_disable_tx_interrupt
+uart_load_buffer
+uart_enable_tx_interrupt
+vsprintf

@@ -1,0 +1,17 @@
+C:\Users\casas\OneDrive - ITBA\Material de Clases\Labo de Micros\ADC_DAC_code samples\ADC\CMSIS/core_cm4.h:1626:22:NVIC_EnableIRQ	16	static
+../source/ADC.c:16:6:ADC_Init	16	static
+../source/ADC.c:46:6:ADC_SetResolution	16	static
+../source/ADC.c:51:6:ADC_SetCycles	16	static
+../source/ADC.c:66:6:ADC_SetInterruptMode	16	static
+../source/ADC.c:74:6:ADC_IsInterruptPending	16	static
+../source/ADC.c:79:6:ADC_ClearInterruptFlag	16	static
+../source/ADC.c:86:11:ADC_GetResolution	16	static
+../source/ADC.c:93:13:ADC_GetSCycles	16	static
+../source/ADC.c:101:6:ADC_SetHardwareAverage	16	static
+../source/ADC.c:113:11:ADC_GetHardwareAverage	16	static
+../source/ADC.c:121:6:ADC_Calibrate	88	static
+../source/ADC.c:197:6:setADCIRQ	16	static
+../source/ADC.c:201:6:ADC_Start	16	static
+../source/ADC.c:211:6:ADC_IsReady	16	static
+../source/ADC.c:216:11:ADC_getData	16	static
+../source/ADC.c:223:9:ADC0_IRQHandler	16	static

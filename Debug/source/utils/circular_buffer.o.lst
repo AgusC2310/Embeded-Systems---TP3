@@ -1,0 +1,522 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"circular_buffer.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "../source/utils/circular_buffer.c"
+  20              		.section	.text.circular_buffer_init,"ax",%progbits
+  21              		.align	1
+  22              		.global	circular_buffer_init
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	circular_buffer_init:
+  28              	.LFB0:
+   1:../source/utils/circular_buffer.c **** #include "circular_buffer.h"
+   2:../source/utils/circular_buffer.c **** #include <stdbool.h>
+   3:../source/utils/circular_buffer.c **** #include <string.h>
+   4:../source/utils/circular_buffer.c **** 
+   5:../source/utils/circular_buffer.c **** CircularBuffer_t *circular_buffer_init(size_t max_size) {
+  29              		.loc 1 5 57
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 16
+  32              		@ frame_needed = 1, uses_anonymous_args = 0
+  33 0000 80B5     		push	{r7, lr}
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 7, -8
+  36              		.cfi_offset 14, -4
+  37 0002 84B0     		sub	sp, sp, #16
+  38              		.cfi_def_cfa_offset 24
+  39 0004 00AF     		add	r7, sp, #0
+  40              		.cfi_def_cfa_register 7
+  41 0006 7860     		str	r0, [r7, #4]
+   6:../source/utils/circular_buffer.c ****     CircularBuffer_t *buffer = (CircularBuffer_t *)malloc(sizeof(CircularBuffer_t));
+  42              		.loc 1 6 52
+  43 0008 1820     		movs	r0, #24
+  44 000a FFF7FEFF 		bl	malloc
+  45 000e F860     		str	r0, [r7, #12]
+   7:../source/utils/circular_buffer.c ****     if (!buffer) return NULL;
+  46              		.loc 1 7 8
+  47 0010 FB68     		ldr	r3, [r7, #12]
+  48 0012 002B     		cmp	r3, #0
+  49 0014 01D1     		bne	.L2
+  50              		.loc 1 7 25 discriminator 1
+  51 0016 0023     		movs	r3, #0
+  52              		.loc 1 7 25 is_stmt 0
+  53 0018 1BE0     		b	.L3
+  54              	.L2:
+   8:../source/utils/circular_buffer.c ****     buffer->buffer = (uint8_t *)malloc(max_size * sizeof(uint8_t));
+  55              		.loc 1 8 33 is_stmt 1
+  56 001a 7868     		ldr	r0, [r7, #4]
+  57 001c FFF7FEFF 		bl	malloc
+  58 0020 0246     		mov	r2, r0
+  59              		.loc 1 8 20 discriminator 1
+  60 0022 FB68     		ldr	r3, [r7, #12]
+  61 0024 1A60     		str	r2, [r3]
+   9:../source/utils/circular_buffer.c ****     if (!buffer->buffer) {
+  62              		.loc 1 9 16
+  63 0026 FB68     		ldr	r3, [r7, #12]
+  64 0028 1B68     		ldr	r3, [r3]
+  65              		.loc 1 9 8
+  66 002a 002B     		cmp	r3, #0
+  67 002c 04D1     		bne	.L4
+  10:../source/utils/circular_buffer.c ****         free(buffer);
+  68              		.loc 1 10 9
+  69 002e F868     		ldr	r0, [r7, #12]
+  70 0030 FFF7FEFF 		bl	free
+  11:../source/utils/circular_buffer.c ****         return NULL;
+  71              		.loc 1 11 16
+  72 0034 0023     		movs	r3, #0
+  73 0036 0CE0     		b	.L3
+  74              	.L4:
+  12:../source/utils/circular_buffer.c ****     }
+  13:../source/utils/circular_buffer.c ****     buffer->head = 0;
+  75              		.loc 1 13 18
+  76 0038 FB68     		ldr	r3, [r7, #12]
+  77 003a 0022     		movs	r2, #0
+  78 003c 5A60     		str	r2, [r3, #4]
+  14:../source/utils/circular_buffer.c ****     buffer->tail = 0;
+  79              		.loc 1 14 18
+  80 003e FB68     		ldr	r3, [r7, #12]
+  81 0040 0022     		movs	r2, #0
+  82 0042 9A60     		str	r2, [r3, #8]
+  15:../source/utils/circular_buffer.c ****     buffer->size = 0;
+  83              		.loc 1 15 18
+  84 0044 FB68     		ldr	r3, [r7, #12]
+  85 0046 0022     		movs	r2, #0
+  86 0048 DA60     		str	r2, [r3, #12]
+  16:../source/utils/circular_buffer.c ****     buffer->max_size = max_size;
+  87              		.loc 1 16 22
+  88 004a FB68     		ldr	r3, [r7, #12]
+  89 004c 7A68     		ldr	r2, [r7, #4]
+  90 004e 1A61     		str	r2, [r3, #16]
+  17:../source/utils/circular_buffer.c ****     return buffer;
+  91              		.loc 1 17 12
+  92 0050 FB68     		ldr	r3, [r7, #12]
+  93              	.L3:
+  18:../source/utils/circular_buffer.c **** }
+  94              		.loc 1 18 1
+  95 0052 1846     		mov	r0, r3
+  96 0054 1037     		adds	r7, r7, #16
+  97              		.cfi_def_cfa_offset 8
+  98 0056 BD46     		mov	sp, r7
+  99              		.cfi_def_cfa_register 13
+ 100              		@ sp needed
+ 101 0058 80BD     		pop	{r7, pc}
+ 102              		.cfi_endproc
+ 103              	.LFE0:
+ 105              		.section	.text.circular_buffer_free,"ax",%progbits
+ 106              		.align	1
+ 107              		.global	circular_buffer_free
+ 108              		.syntax unified
+ 109              		.thumb
+ 110              		.thumb_func
+ 112              	circular_buffer_free:
+ 113              	.LFB1:
+  19:../source/utils/circular_buffer.c **** 
+  20:../source/utils/circular_buffer.c **** void circular_buffer_free(CircularBuffer_t *buffer) {
+ 114              		.loc 1 20 53
+ 115              		.cfi_startproc
+ 116              		@ args = 0, pretend = 0, frame = 8
+ 117              		@ frame_needed = 1, uses_anonymous_args = 0
+ 118 0000 80B5     		push	{r7, lr}
+ 119              		.cfi_def_cfa_offset 8
+ 120              		.cfi_offset 7, -8
+ 121              		.cfi_offset 14, -4
+ 122 0002 82B0     		sub	sp, sp, #8
+ 123              		.cfi_def_cfa_offset 16
+ 124 0004 00AF     		add	r7, sp, #0
+ 125              		.cfi_def_cfa_register 7
+ 126 0006 7860     		str	r0, [r7, #4]
+  21:../source/utils/circular_buffer.c ****     if (buffer) {
+ 127              		.loc 1 21 8
+ 128 0008 7B68     		ldr	r3, [r7, #4]
+ 129 000a 002B     		cmp	r3, #0
+ 130 000c 07D0     		beq	.L7
+  22:../source/utils/circular_buffer.c ****         free(buffer->buffer);
+ 131              		.loc 1 22 20
+ 132 000e 7B68     		ldr	r3, [r7, #4]
+ 133 0010 1B68     		ldr	r3, [r3]
+ 134              		.loc 1 22 9
+ 135 0012 1846     		mov	r0, r3
+ 136 0014 FFF7FEFF 		bl	free
+  23:../source/utils/circular_buffer.c ****         free(buffer);
+ 137              		.loc 1 23 9
+ 138 0018 7868     		ldr	r0, [r7, #4]
+ 139 001a FFF7FEFF 		bl	free
+ 140              	.L7:
+  24:../source/utils/circular_buffer.c ****     }
+  25:../source/utils/circular_buffer.c **** }
+ 141              		.loc 1 25 1
+ 142 001e 00BF     		nop
+ 143 0020 0837     		adds	r7, r7, #8
+ 144              		.cfi_def_cfa_offset 8
+ 145 0022 BD46     		mov	sp, r7
+ 146              		.cfi_def_cfa_register 13
+ 147              		@ sp needed
+ 148 0024 80BD     		pop	{r7, pc}
+ 149              		.cfi_endproc
+ 150              	.LFE1:
+ 152              		.section	.text.circular_buffer_used,"ax",%progbits
+ 153              		.align	1
+ 154              		.global	circular_buffer_used
+ 155              		.syntax unified
+ 156              		.thumb
+ 157              		.thumb_func
+ 159              	circular_buffer_used:
+ 160              	.LFB2:
+  26:../source/utils/circular_buffer.c **** 
+  27:../source/utils/circular_buffer.c **** size_t circular_buffer_used(CircularBuffer_t *buffer) {
+ 161              		.loc 1 27 55
+ 162              		.cfi_startproc
+ 163              		@ args = 0, pretend = 0, frame = 8
+ 164              		@ frame_needed = 1, uses_anonymous_args = 0
+ 165              		@ link register save eliminated.
+ 166 0000 80B4     		push	{r7}
+ 167              		.cfi_def_cfa_offset 4
+ 168              		.cfi_offset 7, -4
+ 169 0002 83B0     		sub	sp, sp, #12
+ 170              		.cfi_def_cfa_offset 16
+ 171 0004 00AF     		add	r7, sp, #0
+ 172              		.cfi_def_cfa_register 7
+ 173 0006 7860     		str	r0, [r7, #4]
+  28:../source/utils/circular_buffer.c ****     return buffer->size;
+ 174              		.loc 1 28 18
+ 175 0008 7B68     		ldr	r3, [r7, #4]
+ 176 000a DB68     		ldr	r3, [r3, #12]
+  29:../source/utils/circular_buffer.c **** }
+ 177              		.loc 1 29 1
+ 178 000c 1846     		mov	r0, r3
+ 179 000e 0C37     		adds	r7, r7, #12
+ 180              		.cfi_def_cfa_offset 4
+ 181 0010 BD46     		mov	sp, r7
+ 182              		.cfi_def_cfa_register 13
+ 183              		@ sp needed
+ 184 0012 5DF8047B 		ldr	r7, [sp], #4
+ 185              		.cfi_restore 7
+ 186              		.cfi_def_cfa_offset 0
+ 187 0016 7047     		bx	lr
+ 188              		.cfi_endproc
+ 189              	.LFE2:
+ 191              		.section	.text.circular_buffer_empty,"ax",%progbits
+ 192              		.align	1
+ 193              		.global	circular_buffer_empty
+ 194              		.syntax unified
+ 195              		.thumb
+ 196              		.thumb_func
+ 198              	circular_buffer_empty:
+ 199              	.LFB3:
+  30:../source/utils/circular_buffer.c **** 
+  31:../source/utils/circular_buffer.c **** bool circular_buffer_empty(CircularBuffer_t *buffer) {
+ 200              		.loc 1 31 54
+ 201              		.cfi_startproc
+ 202              		@ args = 0, pretend = 0, frame = 8
+ 203              		@ frame_needed = 1, uses_anonymous_args = 0
+ 204              		@ link register save eliminated.
+ 205 0000 80B4     		push	{r7}
+ 206              		.cfi_def_cfa_offset 4
+ 207              		.cfi_offset 7, -4
+ 208 0002 83B0     		sub	sp, sp, #12
+ 209              		.cfi_def_cfa_offset 16
+ 210 0004 00AF     		add	r7, sp, #0
+ 211              		.cfi_def_cfa_register 7
+ 212 0006 7860     		str	r0, [r7, #4]
+  32:../source/utils/circular_buffer.c ****     return (buffer->size == 0);
+ 213              		.loc 1 32 19
+ 214 0008 7B68     		ldr	r3, [r7, #4]
+ 215 000a DB68     		ldr	r3, [r3, #12]
+ 216              		.loc 1 32 26
+ 217 000c 002B     		cmp	r3, #0
+ 218 000e 0CBF     		ite	eq
+ 219 0010 0123     		moveq	r3, #1
+ 220 0012 0023     		movne	r3, #0
+ 221 0014 DBB2     		uxtb	r3, r3
+  33:../source/utils/circular_buffer.c **** }
+ 222              		.loc 1 33 1
+ 223 0016 1846     		mov	r0, r3
+ 224 0018 0C37     		adds	r7, r7, #12
+ 225              		.cfi_def_cfa_offset 4
+ 226 001a BD46     		mov	sp, r7
+ 227              		.cfi_def_cfa_register 13
+ 228              		@ sp needed
+ 229 001c 5DF8047B 		ldr	r7, [sp], #4
+ 230              		.cfi_restore 7
+ 231              		.cfi_def_cfa_offset 0
+ 232 0020 7047     		bx	lr
+ 233              		.cfi_endproc
+ 234              	.LFE3:
+ 236              		.section	.text.circular_buffer_full,"ax",%progbits
+ 237              		.align	1
+ 238              		.global	circular_buffer_full
+ 239              		.syntax unified
+ 240              		.thumb
+ 241              		.thumb_func
+ 243              	circular_buffer_full:
+ 244              	.LFB4:
+  34:../source/utils/circular_buffer.c **** 
+  35:../source/utils/circular_buffer.c **** bool circular_buffer_full(CircularBuffer_t *buffer) {
+ 245              		.loc 1 35 53
+ 246              		.cfi_startproc
+ 247              		@ args = 0, pretend = 0, frame = 8
+ 248              		@ frame_needed = 1, uses_anonymous_args = 0
+ 249              		@ link register save eliminated.
+ 250 0000 80B4     		push	{r7}
+ 251              		.cfi_def_cfa_offset 4
+ 252              		.cfi_offset 7, -4
+ 253 0002 83B0     		sub	sp, sp, #12
+ 254              		.cfi_def_cfa_offset 16
+ 255 0004 00AF     		add	r7, sp, #0
+ 256              		.cfi_def_cfa_register 7
+ 257 0006 7860     		str	r0, [r7, #4]
+  36:../source/utils/circular_buffer.c ****     return (buffer->size == buffer->max_size);
+ 258              		.loc 1 36 19
+ 259 0008 7B68     		ldr	r3, [r7, #4]
+ 260 000a DA68     		ldr	r2, [r3, #12]
+ 261              		.loc 1 36 35
+ 262 000c 7B68     		ldr	r3, [r7, #4]
+ 263 000e 1B69     		ldr	r3, [r3, #16]
+ 264              		.loc 1 36 26
+ 265 0010 9A42     		cmp	r2, r3
+ 266 0012 0CBF     		ite	eq
+ 267 0014 0123     		moveq	r3, #1
+ 268 0016 0023     		movne	r3, #0
+ 269 0018 DBB2     		uxtb	r3, r3
+  37:../source/utils/circular_buffer.c **** }
+ 270              		.loc 1 37 1
+ 271 001a 1846     		mov	r0, r3
+ 272 001c 0C37     		adds	r7, r7, #12
+ 273              		.cfi_def_cfa_offset 4
+ 274 001e BD46     		mov	sp, r7
+ 275              		.cfi_def_cfa_register 13
+ 276              		@ sp needed
+ 277 0020 5DF8047B 		ldr	r7, [sp], #4
+ 278              		.cfi_restore 7
+ 279              		.cfi_def_cfa_offset 0
+ 280 0024 7047     		bx	lr
+ 281              		.cfi_endproc
+ 282              	.LFE4:
+ 284              		.section	.text.circular_buffer_push,"ax",%progbits
+ 285              		.align	1
+ 286              		.global	circular_buffer_push
+ 287              		.syntax unified
+ 288              		.thumb
+ 289              		.thumb_func
+ 291              	circular_buffer_push:
+ 292              	.LFB5:
+  38:../source/utils/circular_buffer.c **** 
+  39:../source/utils/circular_buffer.c **** void circular_buffer_push(CircularBuffer_t *buffer, uint8_t data) {
+ 293              		.loc 1 39 67
+ 294              		.cfi_startproc
+ 295              		@ args = 0, pretend = 0, frame = 8
+ 296              		@ frame_needed = 1, uses_anonymous_args = 0
+ 297 0000 80B5     		push	{r7, lr}
+ 298              		.cfi_def_cfa_offset 8
+ 299              		.cfi_offset 7, -8
+ 300              		.cfi_offset 14, -4
+ 301 0002 82B0     		sub	sp, sp, #8
+ 302              		.cfi_def_cfa_offset 16
+ 303 0004 00AF     		add	r7, sp, #0
+ 304              		.cfi_def_cfa_register 7
+ 305 0006 7860     		str	r0, [r7, #4]
+ 306 0008 0B46     		mov	r3, r1
+ 307 000a FB70     		strb	r3, [r7, #3]
+  40:../source/utils/circular_buffer.c ****     if (circular_buffer_full(buffer)) {
+ 308              		.loc 1 40 9
+ 309 000c 7868     		ldr	r0, [r7, #4]
+ 310 000e FFF7FEFF 		bl	circular_buffer_full
+ 311 0012 0346     		mov	r3, r0
+ 312              		.loc 1 40 8 discriminator 1
+ 313 0014 002B     		cmp	r3, #0
+ 314 0016 03D0     		beq	.L15
+  41:../source/utils/circular_buffer.c ****         // Optionally handle overflow
+  42:../source/utils/circular_buffer.c ****         buffer->overflow = true;
+ 315              		.loc 1 42 26
+ 316 0018 7B68     		ldr	r3, [r7, #4]
+ 317 001a 0122     		movs	r2, #1
+ 318 001c 1A75     		strb	r2, [r3, #20]
+  43:../source/utils/circular_buffer.c ****         return;
+ 319              		.loc 1 43 9
+ 320 001e 17E0     		b	.L14
+ 321              	.L15:
+  44:../source/utils/circular_buffer.c ****     }
+  45:../source/utils/circular_buffer.c ****     buffer->buffer[buffer->head] = data;
+ 322              		.loc 1 45 11
+ 323 0020 7B68     		ldr	r3, [r7, #4]
+ 324 0022 1A68     		ldr	r2, [r3]
+ 325              		.loc 1 45 26
+ 326 0024 7B68     		ldr	r3, [r7, #4]
+ 327 0026 5B68     		ldr	r3, [r3, #4]
+ 328              		.loc 1 45 19
+ 329 0028 1344     		add	r3, r3, r2
+ 330              		.loc 1 45 34
+ 331 002a FA78     		ldrb	r2, [r7, #3]
+ 332 002c 1A70     		strb	r2, [r3]
+  46:../source/utils/circular_buffer.c ****     buffer->head = (buffer->head + 1) % buffer->max_size;
+ 333              		.loc 1 46 27
+ 334 002e 7B68     		ldr	r3, [r7, #4]
+ 335 0030 5B68     		ldr	r3, [r3, #4]
+ 336              		.loc 1 46 34
+ 337 0032 0133     		adds	r3, r3, #1
+ 338              		.loc 1 46 47
+ 339 0034 7A68     		ldr	r2, [r7, #4]
+ 340 0036 1269     		ldr	r2, [r2, #16]
+ 341              		.loc 1 46 39
+ 342 0038 B3FBF2F1 		udiv	r1, r3, r2
+ 343 003c 01FB02F2 		mul	r2, r1, r2
+ 344 0040 9A1A     		subs	r2, r3, r2
+ 345              		.loc 1 46 18
+ 346 0042 7B68     		ldr	r3, [r7, #4]
+ 347 0044 5A60     		str	r2, [r3, #4]
+  47:../source/utils/circular_buffer.c ****     buffer->size++;
+ 348              		.loc 1 47 11
+ 349 0046 7B68     		ldr	r3, [r7, #4]
+ 350 0048 DB68     		ldr	r3, [r3, #12]
+ 351              		.loc 1 47 17
+ 352 004a 5A1C     		adds	r2, r3, #1
+ 353 004c 7B68     		ldr	r3, [r7, #4]
+ 354 004e DA60     		str	r2, [r3, #12]
+ 355              	.L14:
+  48:../source/utils/circular_buffer.c **** }
+ 356              		.loc 1 48 1
+ 357 0050 0837     		adds	r7, r7, #8
+ 358              		.cfi_def_cfa_offset 8
+ 359 0052 BD46     		mov	sp, r7
+ 360              		.cfi_def_cfa_register 13
+ 361              		@ sp needed
+ 362 0054 80BD     		pop	{r7, pc}
+ 363              		.cfi_endproc
+ 364              	.LFE5:
+ 366              		.section	.text.circular_buffer_pop,"ax",%progbits
+ 367              		.align	1
+ 368              		.global	circular_buffer_pop
+ 369              		.syntax unified
+ 370              		.thumb
+ 371              		.thumb_func
+ 373              	circular_buffer_pop:
+ 374              	.LFB6:
+  49:../source/utils/circular_buffer.c **** 
+  50:../source/utils/circular_buffer.c **** uint8_t circular_buffer_pop(CircularBuffer_t *buffer) {
+ 375              		.loc 1 50 55
+ 376              		.cfi_startproc
+ 377              		@ args = 0, pretend = 0, frame = 16
+ 378              		@ frame_needed = 1, uses_anonymous_args = 0
+ 379 0000 80B5     		push	{r7, lr}
+ 380              		.cfi_def_cfa_offset 8
+ 381              		.cfi_offset 7, -8
+ 382              		.cfi_offset 14, -4
+ 383 0002 84B0     		sub	sp, sp, #16
+ 384              		.cfi_def_cfa_offset 24
+ 385 0004 00AF     		add	r7, sp, #0
+ 386              		.cfi_def_cfa_register 7
+ 387 0006 7860     		str	r0, [r7, #4]
+  51:../source/utils/circular_buffer.c ****     if (circular_buffer_empty(buffer)) {
+ 388              		.loc 1 51 9
+ 389 0008 7868     		ldr	r0, [r7, #4]
+ 390 000a FFF7FEFF 		bl	circular_buffer_empty
+ 391 000e 0346     		mov	r3, r0
+ 392              		.loc 1 51 8 discriminator 1
+ 393 0010 002B     		cmp	r3, #0
+ 394 0012 01D0     		beq	.L18
+  52:../source/utils/circular_buffer.c ****         // Optionally handle underflow
+  53:../source/utils/circular_buffer.c ****         return 0;
+ 395              		.loc 1 53 16
+ 396 0014 0023     		movs	r3, #0
+ 397 0016 18E0     		b	.L19
+ 398              	.L18:
+  54:../source/utils/circular_buffer.c ****     }
+  55:../source/utils/circular_buffer.c ****     uint8_t data = buffer->buffer[buffer->tail];
+ 399              		.loc 1 55 26
+ 400 0018 7B68     		ldr	r3, [r7, #4]
+ 401 001a 1A68     		ldr	r2, [r3]
+ 402              		.loc 1 55 41
+ 403 001c 7B68     		ldr	r3, [r7, #4]
+ 404 001e 9B68     		ldr	r3, [r3, #8]
+ 405              		.loc 1 55 34
+ 406 0020 1344     		add	r3, r3, r2
+ 407              		.loc 1 55 13
+ 408 0022 1B78     		ldrb	r3, [r3]
+ 409 0024 FB73     		strb	r3, [r7, #15]
+  56:../source/utils/circular_buffer.c ****     buffer->tail = (buffer->tail + 1) % buffer->max_size;
+ 410              		.loc 1 56 27
+ 411 0026 7B68     		ldr	r3, [r7, #4]
+ 412 0028 9B68     		ldr	r3, [r3, #8]
+ 413              		.loc 1 56 34
+ 414 002a 0133     		adds	r3, r3, #1
+ 415              		.loc 1 56 47
+ 416 002c 7A68     		ldr	r2, [r7, #4]
+ 417 002e 1269     		ldr	r2, [r2, #16]
+ 418              		.loc 1 56 39
+ 419 0030 B3FBF2F1 		udiv	r1, r3, r2
+ 420 0034 01FB02F2 		mul	r2, r1, r2
+ 421 0038 9A1A     		subs	r2, r3, r2
+ 422              		.loc 1 56 18
+ 423 003a 7B68     		ldr	r3, [r7, #4]
+ 424 003c 9A60     		str	r2, [r3, #8]
+  57:../source/utils/circular_buffer.c ****     buffer->size--;
+ 425              		.loc 1 57 11
+ 426 003e 7B68     		ldr	r3, [r7, #4]
+ 427 0040 DB68     		ldr	r3, [r3, #12]
+ 428              		.loc 1 57 17
+ 429 0042 5A1E     		subs	r2, r3, #1
+ 430 0044 7B68     		ldr	r3, [r7, #4]
+ 431 0046 DA60     		str	r2, [r3, #12]
+  58:../source/utils/circular_buffer.c ****     return data;
+ 432              		.loc 1 58 12
+ 433 0048 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 434              	.L19:
+  59:../source/utils/circular_buffer.c **** }
+ 435              		.loc 1 59 1
+ 436 004a 1846     		mov	r0, r3
+ 437 004c 1037     		adds	r7, r7, #16
+ 438              		.cfi_def_cfa_offset 8
+ 439 004e BD46     		mov	sp, r7
+ 440              		.cfi_def_cfa_register 13
+ 441              		@ sp needed
+ 442 0050 80BD     		pop	{r7, pc}
+ 443              		.cfi_endproc
+ 444              	.LFE6:
+ 446              		.text
+ 447              	.Letext0:
+ 448              		.file 2 "C:/nxp/MCUXpressoIDE_11.10.0_3148/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.10.0.2023
+ 449              		.file 3 "C:/nxp/MCUXpressoIDE_11.10.0_3148/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.10.0.2023
+ 450              		.file 4 "../source/utils/circular_buffer.h"
+ 451              		.file 5 "C:/nxp/MCUXpressoIDE_11.10.0_3148/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.10.0.2023
+DEFINED SYMBOLS
+                            *ABS*:00000000 circular_buffer.c
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:21     .text.circular_buffer_init:00000000 $t
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:27     .text.circular_buffer_init:00000000 circular_buffer_init
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:106    .text.circular_buffer_free:00000000 $t
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:112    .text.circular_buffer_free:00000000 circular_buffer_free
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:153    .text.circular_buffer_used:00000000 $t
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:159    .text.circular_buffer_used:00000000 circular_buffer_used
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:192    .text.circular_buffer_empty:00000000 $t
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:198    .text.circular_buffer_empty:00000000 circular_buffer_empty
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:237    .text.circular_buffer_full:00000000 $t
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:243    .text.circular_buffer_full:00000000 circular_buffer_full
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:285    .text.circular_buffer_push:00000000 $t
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:291    .text.circular_buffer_push:00000000 circular_buffer_push
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:367    .text.circular_buffer_pop:00000000 $t
+C:\Users\casas\AppData\Local\Temp\cclrJXmU.s:373    .text.circular_buffer_pop:00000000 circular_buffer_pop
+                           .group:00000000 wm4.0.1dcc4abb7b230aa9a5dadaa004994123
+                           .group:00000000 wm4.redlib_version.h.25.d2e865e22c1528eeae52d7d98a50fff1
+                           .group:00000000 wm4.libconfigarm.h.19.34723c94cbd19598192aa6b1e87fca41
+                           .group:00000000 wm4.stdint.h.31.58198de4ea930fb897655479091e17c7
+                           .group:00000000 wm4.stdlib.h.22.a9bbbfa810cf02ee174b0a6b37d52530
+                           .group:00000000 wm4.stdbool.h.15.fddf1cb2402fd739d8e2516677869231
+
+UNDEFINED SYMBOLS
+malloc
+free
