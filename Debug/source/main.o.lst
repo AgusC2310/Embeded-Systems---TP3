@@ -263,22 +263,22 @@
  199              		.file 9 "../source/hardware.h"
 DEFINED SYMBOLS
                             *ABS*:00000000 main.c
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:25     .bss.data:00000000 data
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:22     .bss.data:00000000 $d
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:32     .bss.dato:00000000 dato
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:29     .bss.dato:00000000 $d
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:39     .bss.cont:00000000 cont
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:36     .bss.cont:00000000 $d
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:46     .bss.conf:00000000 conf
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:43     .bss.conf:00000000 $d
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:53     .bss.bitstream:00000000 bitstream
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:50     .bss.bitstream:00000000 $d
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:60     .bss.filt_cnt:00000000 filt_cnt
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:57     .bss.filt_cnt:00000000 $d
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:63     .rodata.main.str1.4:00000000 $d
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:73     .text.main:00000000 $t
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:79     .text.main:00000000 main
-C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:180    .text.main:0000009c $d
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:25     .bss.data:00000000 data
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:22     .bss.data:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:32     .bss.dato:00000000 dato
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:29     .bss.dato:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:39     .bss.cont:00000000 cont
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:36     .bss.cont:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:46     .bss.conf:00000000 conf
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:43     .bss.conf:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:53     .bss.bitstream:00000000 bitstream
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:50     .bss.bitstream:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:60     .bss.filt_cnt:00000000 filt_cnt
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:57     .bss.filt_cnt:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:63     .rodata.main.str1.4:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:73     .text.main:00000000 $t
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:79     .text.main:00000000 main
+C:\Users\casas\AppData\Local\Temp\ccsBplca.s:180    .text.main:0000009c $d
                            .group:00000000 wm4.0.1dcc4abb7b230aa9a5dadaa004994123
                            .group:00000000 wm4.redlib_version.h.25.d2e865e22c1528eeae52d7d98a50fff1
                            .group:00000000 wm4.libconfigarm.h.19.34723c94cbd19598192aa6b1e87fca41
@@ -299,7 +299,7 @@ C:\Users\casas\AppData\Local\Temp\cckoyXpb.s:180    .text.main:0000009c $d
                            .group:00000000 wm4.stdio.h.45.f451916e772fb1711dab452062404594
                            .group:00000000 wm4.stdarg.h.28.d8f3211cadb58bc5b5d9912f510a3ed1
                            .group:00000000 wm4.pdb.h.22.34ae618ef6a00e35529519f193427cf7
-                           .group:00000000 wm4.demod.h.2.ecf18e8809dff3c4f5a729ecc68367a4
+                           .group:00000000 wm4.demod.h.2.bc5398c2542440b6b4566454651fb434
 
 UNDEFINED SYMBOLS
 hw_Init

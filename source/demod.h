@@ -15,6 +15,7 @@
 
 #define LOGIC_0 0
 #define LOGIC_1 1
+#define PARITY_VALUE 1		// 1 for odd parity, 0 for even.
 
 //macro for circular buffer index update. ind = previous index. size = number of elements in the array. returns 0 when ind==(size-1)
 #define UPDATE_INDEX(ind, size) (((ind)==((size)-1)) ? 0 : (ind+1))
@@ -35,9 +36,15 @@ typedef enum {
 	RECIEVING,
 	PARITY,
 	END,
-
-
 }COMM_STATE_t;
+
+typedef enum{
+	NO_ERR,
+	PARITY_ERR,
+	END_ERR,
+	BOTH_ERR
+}DEMOD_ERROR_t;
+
 
 void demod_init( uint8_t* demod_bitstream_ptr);
 

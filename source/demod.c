@@ -3,7 +3,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 //hola
+
 void add_data(uint16_t new_data);
+void data_fsm(uint8_t data_in);
 
 static const float coefs[FILTER_SIZE] = {
 		 -0.002086994263159,-0.006003054525357,-0.008633170414909,-0.001790251586214,
@@ -33,8 +35,10 @@ static uint16_t unfiltered_data_count;	//number of data samples that were not fi
 static COMM_STATE_t stream_state;	//idle state. 1 if no transmission is occurring at the moment (idle). 0 otherwise.
 static uint8_t sample_count;			//counter for the number of samples in a bit.
 static uint8_t bit_count;			//counter of bits in a message to find the end bit.
-static uint8_t zero_cout;			//counter for the amount of 0s in the start bit
-
+static uint8_t zero_count;			//counter for the amount of 0s in the start bit
+static uint8_t parity;				//variable to calculate parity.
+static uint8_t error_flag;			//Error from parity or lack of end bit.
+static uint8_t data_byte;			//data byte demodulated
 
 
 void demod_init( uint8_t* demod_bitstream_ptr){
@@ -70,13 +74,8 @@ uint8_t filter_data (void){
 		else if( filtered_data < V_TL){
 				current_state = LOGIC_1;	//Set to 1 when amplitude is less than V_tl
 		}
-
-		if(idle && !current_state){
-			idle=0;					//this indicates the start bit
-		}
 		data_fsm(current_state);
 
-		demod_bitstream[demod_write_index]= current_state;
 		demod_bitstream[demod_write_index]= current_state;						//load data into array
 		demod_write_index = UPDATE_INDEX(demod_write_index, BITSTREAM_SIZE);	//update write index
 
@@ -110,24 +109,27 @@ void data_fsm(uint8_t data_in){
 	case IDLE:
 		if(data_in == LOGIC_0){
 			stream_state = CHECK_START;
-			zero_cout++;
+			zero_count++;
 			sample_count++;
 		}
 		break;
 	case CHECK_START:
 		sample_count++;
 		if((sample_count < 6) && (data_in == LOGIC_0)){
-			zero_cout++;
+			zero_count++;
 		}
 		else if (sample_count == OVERSAMPLE_RATE){
-			if(zero_cout > 2){
+			if(zero_count > 2){
 				stream_state = RECIEVING;	//mayority of the sampled bits are 0. start is considered
+				error_flag=0;
+				data_byte =0;
 			}
 			else{
 				stream_state = IDLE;		//considered a false start
 			}
-			zero_cout=0;			//reset counters
+			zero_count=0;			//reset counters
 			sample_count =0;
+			parity =0;				//reset parity
 			bit_count = 0;			//make sure bit_count is in 0
 		}
 
@@ -137,20 +139,20 @@ void data_fsm(uint8_t data_in){
 		sample_count++;
 		if((sample_count > COMP_WINDOW_LOW) && (sample_count < COMP_WINDOW_HIGH)){		//take the 5 middle samples
 			if(data_in == LOGIC_0){
-				zero_cout++;
+				zero_count++;
 			}
 		}
 		else if(sample_count == OVERSAMPLE_RATE){
-			if(zero_count > COMP_THRESHOLD){
-				demod_bitstream[demod_write_index]= LOGIC_0;						//load data into array
+			//data byte is unchanged IF 0 IS RECIEVED!!!
+			//if(zero_count > COMP_THRESHOLD){
+				//data_byte += ( 0 << bit_count);
+				//parity ^= LOGIC_0;
+			//}
+			if(zero_count <= COMP_THRESHOLD){
+				data_byte += (1<<bit_count);			//UART IS LSB FIRST. SHIFT THE DATA BIT N BITS AND ADD IT
+				parity ^= LOGIC_1;
 			}
-			else{
-				demod_bitstream[demod_write_index]= LOGIC_1;						//load data into array
-			}
-
-			demod_write_index = UPDATE_INDEX(demod_write_index, BITSTREAM_SIZE);	//update write index
-
-			zero_cout =0;			//Restart counters
+			zero_count =0;			//Restart counters
 			sample_count=0;
 			bit_count++;		//add 1 to bit count
 		}
@@ -162,7 +164,47 @@ void data_fsm(uint8_t data_in){
 
 		break;
 
+	case PARITY:
+		sample_count++;
+		if((sample_count > COMP_WINDOW_LOW) && (sample_count < COMP_WINDOW_HIGH)){		//take the 5 middle samples
+			if(data_in == LOGIC_0){
+				zero_count++;
+			}
+		}
+		else if(sample_count == OVERSAMPLE_RATE){
+			//XOR with 0 doesn't change the result. Only analyze for 1
+			if(zero_count <= COMP_THRESHOLD){
+				parity ^= LOGIC_1;
+			}
+
+			if(parity == PARITY_VALUE){
+				error_flag =NO_ERR;				//check for parity
+			}
+			else{
+				error_flag =PARITY_ERR;
+			}
+
+			zero_count =0;			//Restart counters
+			sample_count=0;
+			stream_state = END;
+		}
+
+		break;
 	case END:
+		sample_count++;
+		if((sample_count > COMP_WINDOW_LOW) && (sample_count < COMP_WINDOW_HIGH)){		//take the 5 middle samples
+			if(data_in == LOGIC_0){
+				zero_count++;
+			}
+		}
+		else if(sample_count == OVERSAMPLE_RATE){
+			if(zero_count > COMP_THRESHOLD){			//END BIT SHOULD BE 1.
+				error_flag += END_ERR;					//By adding, if there was a parity error it will still show, because the flag will take the value of BOTH_ERR
+			}
+			zero_count =0;			//Restart counters
+			sample_count=0;
+			stream_state = IDLE;
+		}
 		break;
 
 	default:

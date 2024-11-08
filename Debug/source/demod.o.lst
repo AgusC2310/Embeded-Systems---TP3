@@ -78,630 +78,1244 @@
   88              		.align	1
   91              	unfiltered_data_count:
   92 0000 0000     		.space	2
-  93              		.section	.bss.idle,"aw",%nobits
-  96              	idle:
+  93              		.section	.bss.stream_state,"aw",%nobits
+  96              	stream_state:
   97 0000 00       		.space	1
-  98              		.section	.text.demod_init,"ax",%progbits
-  99              		.align	1
- 100              		.global	demod_init
- 101              		.syntax unified
- 102              		.thumb
- 103              		.thumb_func
- 105              	demod_init:
- 106              	.LFB123:
-   1:../source/demod.c **** #include "demod.h"
+  98              		.section	.bss.sample_count,"aw",%nobits
+ 101              	sample_count:
+ 102 0000 00       		.space	1
+ 103              		.section	.bss.bit_count,"aw",%nobits
+ 106              	bit_count:
+ 107 0000 00       		.space	1
+ 108              		.section	.bss.zero_count,"aw",%nobits
+ 111              	zero_count:
+ 112 0000 00       		.space	1
+ 113              		.section	.bss.parity,"aw",%nobits
+ 116              	parity:
+ 117 0000 00       		.space	1
+ 118              		.section	.bss.error_flag,"aw",%nobits
+ 121              	error_flag:
+ 122 0000 00       		.space	1
+ 123              		.section	.bss.data_byte,"aw",%nobits
+ 126              	data_byte:
+ 127 0000 00       		.space	1
+ 128              		.section	.text.demod_init,"ax",%progbits
+ 129              		.align	1
+ 130              		.global	demod_init
+ 131              		.syntax unified
+ 132              		.thumb
+ 133              		.thumb_func
+ 135              	demod_init:
+ 136              	.LFB123:
+   1:../source/demod.c **** #include "demod.h" 
    2:../source/demod.c **** #include "ADC.h"
    3:../source/demod.c **** #include <stdint.h>
    4:../source/demod.c **** #include <stdbool.h>
-   5:../source/demod.c **** 
-   6:../source/demod.c **** void add_data(uint16_t new_data);
-   7:../source/demod.c **** 
-   8:../source/demod.c **** static const float coefs[FILTER_SIZE] = {
-   9:../source/demod.c **** 		 -0.002086994263159,-0.006003054525357,-0.008633170414909,-0.001790251586214,
-  10:../source/demod.c **** 		    0.02460882704212,   0.0756853298976,   0.1448247875714,   0.2127701317527,
-  11:../source/demod.c **** 		     0.2551960820215,   0.2551960820215,   0.2127701317527,   0.1448247875714,
-  12:../source/demod.c **** 		     0.0756853298976,  0.02460882704212,-0.001790251586214,-0.008633170414909,
-  13:../source/demod.c **** 		  -0.006003054525357,-0.002086994263159
-  14:../source/demod.c **** 		};
-  15:../source/demod.c **** 
-  16:../source/demod.c **** static float raw_inputs[MULT_BUFF_SIZE];
-  17:../source/demod.c **** static uint8_t write_index_raw;
-  18:../source/demod.c **** 
-  19:../source/demod.c **** 
+   5:../source/demod.c **** //hola
+   6:../source/demod.c **** 
+   7:../source/demod.c **** void add_data(uint16_t new_data);
+   8:../source/demod.c **** void data_fsm(uint8_t data_in);
+   9:../source/demod.c **** 
+  10:../source/demod.c **** static const float coefs[FILTER_SIZE] = {
+  11:../source/demod.c **** 		 -0.002086994263159,-0.006003054525357,-0.008633170414909,-0.001790251586214,
+  12:../source/demod.c **** 		    0.02460882704212,   0.0756853298976,   0.1448247875714,   0.2127701317527,
+  13:../source/demod.c **** 		     0.2551960820215,   0.2551960820215,   0.2127701317527,   0.1448247875714,
+  14:../source/demod.c **** 		     0.0756853298976,  0.02460882704212,-0.001790251586214,-0.008633170414909,
+  15:../source/demod.c **** 		  -0.006003054525357,-0.002086994263159
+  16:../source/demod.c **** 		};
+  17:../source/demod.c **** 
+  18:../source/demod.c **** static float raw_inputs[MULT_BUFF_SIZE];
+  19:../source/demod.c **** static uint8_t write_index_raw;
   20:../source/demod.c **** 
-  21:../source/demod.c **** static float inputs[BUFFER_SIZE];
-  22:../source/demod.c **** static uint8_t* demod_bitstream;
-  23:../source/demod.c **** 
-  24:../source/demod.c **** static uint8_t write_index;
-  25:../source/demod.c **** static uint8_t read_index;
-  26:../source/demod.c **** 
-  27:../source/demod.c **** static uint16_t demod_write_index;		//
+  21:../source/demod.c **** 
+  22:../source/demod.c **** 
+  23:../source/demod.c **** static float inputs[BUFFER_SIZE];
+  24:../source/demod.c **** static uint8_t* demod_bitstream;
+  25:../source/demod.c **** 
+  26:../source/demod.c **** static uint8_t write_index;
+  27:../source/demod.c **** static uint8_t read_index;
   28:../source/demod.c **** 
-  29:../source/demod.c **** 
-  30:../source/demod.c **** static uint8_t current_state;			//State of the hysteresis trigger
-  31:../source/demod.c **** static uint16_t unfiltered_data_count;	//number of data samples that were not filtered
-  32:../source/demod.c **** 
-  33:../source/demod.c **** static bool idle;	//idle state. 1 if no transmission is occurring at the moment. 0 otherwise.
+  29:../source/demod.c **** static uint16_t demod_write_index;		//
+  30:../source/demod.c **** 
+  31:../source/demod.c **** 
+  32:../source/demod.c **** static uint8_t current_state;			//State of the hysteresis trigger
+  33:../source/demod.c **** static uint16_t unfiltered_data_count;	//number of data samples that were not filtered
   34:../source/demod.c **** 
-  35:../source/demod.c **** 
-  36:../source/demod.c **** void demod_init( uint8_t* demod_bitstream_ptr){
- 107              		.loc 1 36 47
- 108              		.cfi_startproc
- 109              		@ args = 0, pretend = 0, frame = 8
- 110              		@ frame_needed = 1, uses_anonymous_args = 0
- 111 0000 80B5     		push	{r7, lr}
- 112              		.cfi_def_cfa_offset 8
- 113              		.cfi_offset 7, -8
- 114              		.cfi_offset 14, -4
- 115 0002 82B0     		sub	sp, sp, #8
- 116              		.cfi_def_cfa_offset 16
- 117 0004 00AF     		add	r7, sp, #0
- 118              		.cfi_def_cfa_register 7
- 119 0006 7860     		str	r0, [r7, #4]
-  37:../source/demod.c **** 	setADCIRQ(add_data);
- 120              		.loc 1 37 2
- 121 0008 0448     		ldr	r0, .L2
- 122 000a FFF7FEFF 		bl	setADCIRQ
-  38:../source/demod.c **** 	demod_bitstream = demod_bitstream_ptr;
- 123              		.loc 1 38 18
- 124 000e 044A     		ldr	r2, .L2+4
- 125 0010 7B68     		ldr	r3, [r7, #4]
- 126 0012 1360     		str	r3, [r2]
-  39:../source/demod.c **** }
- 127              		.loc 1 39 1
- 128 0014 00BF     		nop
- 129 0016 0837     		adds	r7, r7, #8
- 130              		.cfi_def_cfa_offset 8
- 131 0018 BD46     		mov	sp, r7
- 132              		.cfi_def_cfa_register 13
- 133              		@ sp needed
- 134 001a 80BD     		pop	{r7, pc}
- 135              	.L3:
- 136              		.align	2
- 137              	.L2:
- 138 001c 00000000 		.word	add_data
- 139 0020 00000000 		.word	demod_bitstream
- 140              		.cfi_endproc
- 141              	.LFE123:
- 143              		.section	.text.filter_data,"ax",%progbits
- 144              		.align	1
- 145              		.global	filter_data
- 146              		.syntax unified
- 147              		.thumb
- 148              		.thumb_func
- 150              	filter_data:
- 151              	.LFB124:
-  40:../source/demod.c **** 
-  41:../source/demod.c **** uint8_t filter_data (void){
- 152              		.loc 1 41 27
- 153              		.cfi_startproc
- 154              		@ args = 0, pretend = 0, frame = 16
- 155              		@ frame_needed = 1, uses_anonymous_args = 0
- 156              		@ link register save eliminated.
- 157 0000 80B4     		push	{r7}
- 158              		.cfi_def_cfa_offset 4
- 159              		.cfi_offset 7, -4
- 160 0002 85B0     		sub	sp, sp, #20
- 161              		.cfi_def_cfa_offset 24
- 162 0004 00AF     		add	r7, sp, #0
- 163              		.cfi_def_cfa_register 7
-  42:../source/demod.c **** #ifdef DEBUG_PIN
-  43:../source/demod.c **** 	DEBUG_TP_SET;
- 164              		.loc 1 43 2
- 165 0006 534B     		ldr	r3, .L25
- 166 0008 4FF40002 		mov	r2, #8388608
- 167 000c 1A60     		str	r2, [r3]
-  44:../source/demod.c **** 	//GPIO_Set(PTC, GPIO_OUT(12));
-  45:../source/demod.c **** #endif
-  46:../source/demod.c **** 	int i,j;
-  47:../source/demod.c **** 	uint8_t num_data=0;			//number of data samples filtered
- 168              		.loc 1 47 10
- 169 000e 0023     		movs	r3, #0
- 170 0010 FB71     		strb	r3, [r7, #7]
-  48:../source/demod.c **** 	float filtered_data=0;
- 171              		.loc 1 48 8
- 172 0012 4FF00003 		mov	r3, #0
- 173 0016 3B60     		str	r3, [r7]	@ float
-  49:../source/demod.c **** 	if(write_index >= read_index){
- 174              		.loc 1 49 17
- 175 0018 4F4B     		ldr	r3, .L25+4
- 176 001a 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
- 177 001c 4F4B     		ldr	r3, .L25+8
- 178 001e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 179              		.loc 1 49 4
- 180 0020 9A42     		cmp	r2, r3
- 181 0022 06D3     		bcc	.L5
-  50:../source/demod.c **** 		num_data= write_index-read_index;
- 182              		.loc 1 50 24
- 183 0024 4C4B     		ldr	r3, .L25+4
- 184 0026 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
- 185 0028 4C4B     		ldr	r3, .L25+8
- 186 002a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 187              		.loc 1 50 11
- 188 002c D31A     		subs	r3, r2, r3
- 189 002e FB71     		strb	r3, [r7, #7]
- 190 0030 07E0     		b	.L6
- 191              	.L5:
-  51:../source/demod.c **** 	}
-  52:../source/demod.c **** 	else{
-  53:../source/demod.c **** 		num_data= write_index - read_index + (BUFFER_SIZE);
- 192              		.loc 1 53 25
- 193 0032 494B     		ldr	r3, .L25+4
- 194 0034 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
- 195 0036 494B     		ldr	r3, .L25+8
- 196 0038 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 197 003a D31A     		subs	r3, r2, r3
- 198 003c DBB2     		uxtb	r3, r3
- 199              		.loc 1 53 11
- 200 003e 6433     		adds	r3, r3, #100
- 201 0040 FB71     		strb	r3, [r7, #7]
- 202              	.L6:
-  54:../source/demod.c **** 	}
-  55:../source/demod.c **** 	for(j=0; j<num_data; j++)
- 203              		.loc 1 55 7
- 204 0042 0023     		movs	r3, #0
- 205 0044 BB60     		str	r3, [r7, #8]
- 206              		.loc 1 55 2
- 207 0046 75E0     		b	.L7
- 208              	.L20:
-  56:../source/demod.c **** 	{
-  57:../source/demod.c **** 		for(i=0; i<FILTER_SIZE; i++){
- 209              		.loc 1 57 8
- 210 0048 0023     		movs	r3, #0
- 211 004a FB60     		str	r3, [r7, #12]
- 212              		.loc 1 57 3
- 213 004c 28E0     		b	.L8
- 214              	.L11:
-  58:../source/demod.c **** 			filtered_data += inputs[CIRCULAR_INDEX_R(read_index - i, BUFFER_SIZE)] * coefs[i];
- 215              		.loc 1 58 28
- 216 004e 434B     		ldr	r3, .L25+8
- 217 0050 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 218 0052 1A46     		mov	r2, r3
- 219 0054 FB68     		ldr	r3, [r7, #12]
- 220 0056 D31A     		subs	r3, r2, r3
- 221 0058 002B     		cmp	r3, #0
- 222 005a 06DA     		bge	.L9
- 223              		.loc 1 58 28 is_stmt 0 discriminator 1
- 224 005c 3F4B     		ldr	r3, .L25+8
- 225 005e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 226 0060 1A46     		mov	r2, r3
- 227 0062 FB68     		ldr	r3, [r7, #12]
- 228 0064 D31A     		subs	r3, r2, r3
- 229 0066 6433     		adds	r3, r3, #100
- 230 0068 04E0     		b	.L10
- 231              	.L9:
- 232              		.loc 1 58 28 discriminator 2
- 233 006a 3C4B     		ldr	r3, .L25+8
- 234 006c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 235 006e 1A46     		mov	r2, r3
- 236 0070 FB68     		ldr	r3, [r7, #12]
- 237 0072 D31A     		subs	r3, r2, r3
- 238              	.L10:
- 239              		.loc 1 58 27 is_stmt 1 discriminator 4
- 240 0074 3A4A     		ldr	r2, .L25+12
- 241 0076 9B00     		lsls	r3, r3, #2
- 242 0078 1344     		add	r3, r3, r2
- 243 007a 93ED007A 		vldr.32	s14, [r3]
- 244              		.loc 1 58 82 discriminator 4
- 245 007e 394A     		ldr	r2, .L25+16
- 246 0080 FB68     		ldr	r3, [r7, #12]
- 247 0082 9B00     		lsls	r3, r3, #2
- 248 0084 1344     		add	r3, r3, r2
- 249 0086 D3ED007A 		vldr.32	s15, [r3]
- 250              		.loc 1 58 75 discriminator 4
- 251 008a 67EE277A 		vmul.f32	s15, s14, s15
- 252              		.loc 1 58 18 discriminator 4
- 253 008e 97ED007A 		vldr.32	s14, [r7]
- 254 0092 77EE277A 		vadd.f32	s15, s14, s15
- 255 0096 C7ED007A 		vstr.32	s15, [r7]
-  57:../source/demod.c **** 			filtered_data += inputs[CIRCULAR_INDEX_R(read_index - i, BUFFER_SIZE)] * coefs[i];
- 256              		.loc 1 57 28 discriminator 2
- 257 009a FB68     		ldr	r3, [r7, #12]
- 258 009c 0133     		adds	r3, r3, #1
- 259 009e FB60     		str	r3, [r7, #12]
- 260              	.L8:
-  57:../source/demod.c **** 			filtered_data += inputs[CIRCULAR_INDEX_R(read_index - i, BUFFER_SIZE)] * coefs[i];
- 261              		.loc 1 57 13 discriminator 1
- 262 00a0 FB68     		ldr	r3, [r7, #12]
- 263 00a2 112B     		cmp	r3, #17
- 264 00a4 D3DD     		ble	.L11
-  59:../source/demod.c **** 		}
-  60:../source/demod.c **** 		read_index = UPDATE_INDEX(read_index,BUFFER_SIZE);
- 265              		.loc 1 60 16
- 266 00a6 2D4B     		ldr	r3, .L25+8
- 267 00a8 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 268              		.loc 1 60 14
- 269 00aa 632B     		cmp	r3, #99
- 270 00ac 04D0     		beq	.L12
- 271              		.loc 1 60 16 discriminator 1
- 272 00ae 2B4B     		ldr	r3, .L25+8
- 273 00b0 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 274              		.loc 1 60 14 discriminator 1
- 275 00b2 0133     		adds	r3, r3, #1
- 276 00b4 DBB2     		uxtb	r3, r3
- 277 00b6 00E0     		b	.L13
- 278              	.L12:
- 279              		.loc 1 60 14 is_stmt 0 discriminator 2
- 280 00b8 0023     		movs	r3, #0
- 281              	.L13:
- 282              		.loc 1 60 14 discriminator 4
- 283 00ba 284A     		ldr	r2, .L25+8
- 284 00bc 1370     		strb	r3, [r2]
-  61:../source/demod.c **** 
-  62:../source/demod.c **** 		if(filtered_data > V_TH){
- 285              		.loc 1 62 5 is_stmt 1
- 286 00be D7ED007A 		vldr.32	s15, [r7]
- 287 00c2 9FED297A 		vldr.32	s14, .L25+20
- 288 00c6 F4EEC77A 		vcmpe.f32	s15, s14
- 289 00ca F1EE10FA 		vmrs	APSR_nzcv, FPSCR
- 290 00ce 03DD     		ble	.L24
-  63:../source/demod.c **** 				current_state = 0;	// Set to 0 when amplitude is greater than V_th
- 291              		.loc 1 63 19
- 292 00d0 264B     		ldr	r3, .L25+24
- 293 00d2 0022     		movs	r2, #0
- 294 00d4 1A70     		strb	r2, [r3]
- 295 00d6 0BE0     		b	.L16
- 296              	.L24:
-  64:../source/demod.c **** 		}
-  65:../source/demod.c **** 		else if( filtered_data < V_TL){
- 297              		.loc 1 65 10
- 298 00d8 D7ED007A 		vldr.32	s15, [r7]
- 299 00dc 9FED247A 		vldr.32	s14, .L25+28
- 300 00e0 F4EEC77A 		vcmpe.f32	s15, s14
- 301 00e4 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
- 302 00e8 02D5     		bpl	.L16
-  66:../source/demod.c **** 				current_state = 1;	//Set to 1 when amplitude is less than V_tl
- 303              		.loc 1 66 19
- 304 00ea 204B     		ldr	r3, .L25+24
- 305 00ec 0122     		movs	r2, #1
- 306 00ee 1A70     		strb	r2, [r3]
- 307              	.L16:
-  67:../source/demod.c **** 		}
-  68:../source/demod.c **** 
-  69:../source/demod.c **** 		demod_bitstream[demod_write_index]= current_state;
- 308              		.loc 1 69 18
- 309 00f0 204B     		ldr	r3, .L25+32
- 310 00f2 1B68     		ldr	r3, [r3]
- 311 00f4 204A     		ldr	r2, .L25+36
- 312 00f6 1288     		ldrh	r2, [r2]
- 313 00f8 1344     		add	r3, r3, r2
- 314              		.loc 1 69 37
- 315 00fa 1C4A     		ldr	r2, .L25+24
- 316 00fc 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
- 317 00fe 1A70     		strb	r2, [r3]
-  70:../source/demod.c **** 		demod_write_index = UPDATE_INDEX(demod_write_index, BITSTREAM_SIZE);
- 318              		.loc 1 70 23
- 319 0100 1D4B     		ldr	r3, .L25+36
- 320 0102 1B88     		ldrh	r3, [r3]
- 321              		.loc 1 70 21
- 322 0104 40F2E732 		movw	r2, #999
- 323 0108 9342     		cmp	r3, r2
- 324 010a 04D0     		beq	.L18
- 325              		.loc 1 70 23 discriminator 1
- 326 010c 1A4B     		ldr	r3, .L25+36
- 327 010e 1B88     		ldrh	r3, [r3]
- 328              		.loc 1 70 21 discriminator 1
- 329 0110 0133     		adds	r3, r3, #1
- 330 0112 9BB2     		uxth	r3, r3
- 331 0114 00E0     		b	.L19
- 332              	.L18:
- 333              		.loc 1 70 21 is_stmt 0 discriminator 2
- 334 0116 0023     		movs	r3, #0
- 335              	.L19:
- 336              		.loc 1 70 21 discriminator 4
- 337 0118 174A     		ldr	r2, .L25+36
- 338 011a 1380     		strh	r3, [r2]	@ movhi
-  71:../source/demod.c **** 
-  72:../source/demod.c **** 		unfiltered_data_count--;
- 339              		.loc 1 72 24 is_stmt 1
- 340 011c 174B     		ldr	r3, .L25+40
- 341 011e 1B88     		ldrh	r3, [r3]
- 342 0120 013B     		subs	r3, r3, #1
- 343 0122 9AB2     		uxth	r2, r3
- 344 0124 154B     		ldr	r3, .L25+40
- 345 0126 1A80     		strh	r2, [r3]	@ movhi
-  73:../source/demod.c **** 		filtered_data=0;
- 346              		.loc 1 73 16
- 347 0128 4FF00003 		mov	r3, #0
- 348 012c 3B60     		str	r3, [r7]	@ float
-  55:../source/demod.c **** 	{
- 349              		.loc 1 55 24 discriminator 2
- 350 012e BB68     		ldr	r3, [r7, #8]
- 351 0130 0133     		adds	r3, r3, #1
- 352 0132 BB60     		str	r3, [r7, #8]
- 353              	.L7:
-  55:../source/demod.c **** 	{
- 354              		.loc 1 55 12 discriminator 1
- 355 0134 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
- 356 0136 BA68     		ldr	r2, [r7, #8]
- 357 0138 9A42     		cmp	r2, r3
- 358 013a 85DB     		blt	.L20
-  74:../source/demod.c **** 	}
-  75:../source/demod.c **** 	#ifdef DEBUG_PIN
-  76:../source/demod.c **** 		DEBUG_TP_CLR;
- 359              		.loc 1 76 3
- 360 013c 104B     		ldr	r3, .L25+44
- 361 013e 4FF40002 		mov	r2, #8388608
- 362 0142 1A60     		str	r2, [r3]
-  77:../source/demod.c **** 		//GPIO_Clear(PTC, GPIO_OUT(12));
-  78:../source/demod.c **** 	#endif
-  79:../source/demod.c **** 	return num_data;
- 363              		.loc 1 79 9
- 364 0144 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
-  80:../source/demod.c **** }
- 365              		.loc 1 80 1
- 366 0146 1846     		mov	r0, r3
- 367 0148 1437     		adds	r7, r7, #20
- 368              		.cfi_def_cfa_offset 4
- 369 014a BD46     		mov	sp, r7
- 370              		.cfi_def_cfa_register 13
- 371              		@ sp needed
- 372 014c 5DF8047B 		ldr	r7, [sp], #4
- 373              		.cfi_restore 7
- 374              		.cfi_def_cfa_offset 0
- 375 0150 7047     		bx	lr
- 376              	.L26:
- 377 0152 00BF     		.align	2
- 378              	.L25:
- 379 0154 44F00F40 		.word	1074786372
- 380 0158 00000000 		.word	write_index
- 381 015c 00000000 		.word	read_index
- 382 0160 00000000 		.word	inputs
- 383 0164 00000000 		.word	coefs
- 384 0168 CDCCCC3D 		.word	1036831949
- 385 016c 00000000 		.word	current_state
- 386 0170 CDCC4CBE 		.word	-1102263091
- 387 0174 00000000 		.word	demod_bitstream
- 388 0178 00000000 		.word	demod_write_index
- 389 017c 00000000 		.word	unfiltered_data_count
- 390 0180 48F00F40 		.word	1074786376
- 391              		.cfi_endproc
- 392              	.LFE124:
- 394              		.section	.text.add_data,"ax",%progbits
- 395              		.align	1
- 396              		.global	add_data
- 397              		.syntax unified
- 398              		.thumb
- 399              		.thumb_func
- 401              	add_data:
- 402              	.LFB125:
+  35:../source/demod.c **** static COMM_STATE_t stream_state;	//idle state. 1 if no transmission is occurring at the moment (id
+  36:../source/demod.c **** static uint8_t sample_count;			//counter for the number of samples in a bit.
+  37:../source/demod.c **** static uint8_t bit_count;			//counter of bits in a message to find the end bit.
+  38:../source/demod.c **** static uint8_t zero_count;			//counter for the amount of 0s in the start bit
+  39:../source/demod.c **** static uint8_t parity;				//variable to calculate parity.
+  40:../source/demod.c **** static uint8_t error_flag;			//Error from parity or lack of end bit.
+  41:../source/demod.c **** static uint8_t data_byte;			//data byte demodulated
+  42:../source/demod.c **** 
+  43:../source/demod.c **** 
+  44:../source/demod.c **** void demod_init( uint8_t* demod_bitstream_ptr){
+ 137              		.loc 1 44 47
+ 138              		.cfi_startproc
+ 139              		@ args = 0, pretend = 0, frame = 8
+ 140              		@ frame_needed = 1, uses_anonymous_args = 0
+ 141 0000 80B5     		push	{r7, lr}
+ 142              		.cfi_def_cfa_offset 8
+ 143              		.cfi_offset 7, -8
+ 144              		.cfi_offset 14, -4
+ 145 0002 82B0     		sub	sp, sp, #8
+ 146              		.cfi_def_cfa_offset 16
+ 147 0004 00AF     		add	r7, sp, #0
+ 148              		.cfi_def_cfa_register 7
+ 149 0006 7860     		str	r0, [r7, #4]
+  45:../source/demod.c **** 	setADCIRQ(add_data);
+ 150              		.loc 1 45 2
+ 151 0008 0448     		ldr	r0, .L2
+ 152 000a FFF7FEFF 		bl	setADCIRQ
+  46:../source/demod.c **** 	demod_bitstream = demod_bitstream_ptr;
+ 153              		.loc 1 46 18
+ 154 000e 044A     		ldr	r2, .L2+4
+ 155 0010 7B68     		ldr	r3, [r7, #4]
+ 156 0012 1360     		str	r3, [r2]
+  47:../source/demod.c **** }
+ 157              		.loc 1 47 1
+ 158 0014 00BF     		nop
+ 159 0016 0837     		adds	r7, r7, #8
+ 160              		.cfi_def_cfa_offset 8
+ 161 0018 BD46     		mov	sp, r7
+ 162              		.cfi_def_cfa_register 13
+ 163              		@ sp needed
+ 164 001a 80BD     		pop	{r7, pc}
+ 165              	.L3:
+ 166              		.align	2
+ 167              	.L2:
+ 168 001c 00000000 		.word	add_data
+ 169 0020 00000000 		.word	demod_bitstream
+ 170              		.cfi_endproc
+ 171              	.LFE123:
+ 173              		.section	.text.filter_data,"ax",%progbits
+ 174              		.align	1
+ 175              		.global	filter_data
+ 176              		.syntax unified
+ 177              		.thumb
+ 178              		.thumb_func
+ 180              	filter_data:
+ 181              	.LFB124:
+  48:../source/demod.c **** 
+  49:../source/demod.c **** uint8_t filter_data (void){
+ 182              		.loc 1 49 27
+ 183              		.cfi_startproc
+ 184              		@ args = 0, pretend = 0, frame = 16
+ 185              		@ frame_needed = 1, uses_anonymous_args = 0
+ 186 0000 80B5     		push	{r7, lr}
+ 187              		.cfi_def_cfa_offset 8
+ 188              		.cfi_offset 7, -8
+ 189              		.cfi_offset 14, -4
+ 190 0002 84B0     		sub	sp, sp, #16
+ 191              		.cfi_def_cfa_offset 24
+ 192 0004 00AF     		add	r7, sp, #0
+ 193              		.cfi_def_cfa_register 7
+  50:../source/demod.c **** #ifdef DEBUG_PIN
+  51:../source/demod.c **** 	DEBUG_TP_SET;
+ 194              		.loc 1 51 2
+ 195 0006 544B     		ldr	r3, .L25
+ 196 0008 4FF40002 		mov	r2, #8388608
+ 197 000c 1A60     		str	r2, [r3]
+  52:../source/demod.c **** 	//GPIO_Set(PTC, GPIO_OUT(12));
+  53:../source/demod.c **** #endif
+  54:../source/demod.c **** 
+  55:../source/demod.c **** 	int i,j;
+  56:../source/demod.c **** 	uint8_t num_data=0;			//number of data samples filtered
+ 198              		.loc 1 56 10
+ 199 000e 0023     		movs	r3, #0
+ 200 0010 FB71     		strb	r3, [r7, #7]
+  57:../source/demod.c **** 	float filtered_data=0;
+ 201              		.loc 1 57 8
+ 202 0012 4FF00003 		mov	r3, #0
+ 203 0016 3B60     		str	r3, [r7]	@ float
+  58:../source/demod.c **** 	if(write_index >= read_index){
+ 204              		.loc 1 58 17
+ 205 0018 504B     		ldr	r3, .L25+4
+ 206 001a 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 207 001c 504B     		ldr	r3, .L25+8
+ 208 001e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 209              		.loc 1 58 4
+ 210 0020 9A42     		cmp	r2, r3
+ 211 0022 06D3     		bcc	.L5
+  59:../source/demod.c **** 		num_data= write_index-read_index;
+ 212              		.loc 1 59 24
+ 213 0024 4D4B     		ldr	r3, .L25+4
+ 214 0026 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 215 0028 4D4B     		ldr	r3, .L25+8
+ 216 002a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 217              		.loc 1 59 11
+ 218 002c D31A     		subs	r3, r2, r3
+ 219 002e FB71     		strb	r3, [r7, #7]
+ 220 0030 07E0     		b	.L6
+ 221              	.L5:
+  60:../source/demod.c **** 	}
+  61:../source/demod.c **** 	else{
+  62:../source/demod.c **** 		num_data= write_index - read_index + (BUFFER_SIZE);
+ 222              		.loc 1 62 25
+ 223 0032 4A4B     		ldr	r3, .L25+4
+ 224 0034 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 225 0036 4A4B     		ldr	r3, .L25+8
+ 226 0038 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 227 003a D31A     		subs	r3, r2, r3
+ 228 003c DBB2     		uxtb	r3, r3
+ 229              		.loc 1 62 11
+ 230 003e 6433     		adds	r3, r3, #100
+ 231 0040 FB71     		strb	r3, [r7, #7]
+ 232              	.L6:
+  63:../source/demod.c **** 	}
+  64:../source/demod.c **** 	for(j=0; j<num_data; j++)
+ 233              		.loc 1 64 7
+ 234 0042 0023     		movs	r3, #0
+ 235 0044 BB60     		str	r3, [r7, #8]
+ 236              		.loc 1 64 2
+ 237 0046 7AE0     		b	.L7
+ 238              	.L20:
+  65:../source/demod.c **** 	{
+  66:../source/demod.c **** 		for(i=0; i<FILTER_SIZE; i++){
+ 239              		.loc 1 66 8
+ 240 0048 0023     		movs	r3, #0
+ 241 004a FB60     		str	r3, [r7, #12]
+ 242              		.loc 1 66 3
+ 243 004c 28E0     		b	.L8
+ 244              	.L11:
+  67:../source/demod.c **** 			filtered_data += inputs[CIRCULAR_INDEX_R(read_index - i, BUFFER_SIZE)] * coefs[i];
+ 245              		.loc 1 67 28
+ 246 004e 444B     		ldr	r3, .L25+8
+ 247 0050 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 248 0052 1A46     		mov	r2, r3
+ 249 0054 FB68     		ldr	r3, [r7, #12]
+ 250 0056 D31A     		subs	r3, r2, r3
+ 251 0058 002B     		cmp	r3, #0
+ 252 005a 06DA     		bge	.L9
+ 253              		.loc 1 67 28 is_stmt 0 discriminator 1
+ 254 005c 404B     		ldr	r3, .L25+8
+ 255 005e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 256 0060 1A46     		mov	r2, r3
+ 257 0062 FB68     		ldr	r3, [r7, #12]
+ 258 0064 D31A     		subs	r3, r2, r3
+ 259 0066 6433     		adds	r3, r3, #100
+ 260 0068 04E0     		b	.L10
+ 261              	.L9:
+ 262              		.loc 1 67 28 discriminator 2
+ 263 006a 3D4B     		ldr	r3, .L25+8
+ 264 006c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 265 006e 1A46     		mov	r2, r3
+ 266 0070 FB68     		ldr	r3, [r7, #12]
+ 267 0072 D31A     		subs	r3, r2, r3
+ 268              	.L10:
+ 269              		.loc 1 67 27 is_stmt 1 discriminator 4
+ 270 0074 3B4A     		ldr	r2, .L25+12
+ 271 0076 9B00     		lsls	r3, r3, #2
+ 272 0078 1344     		add	r3, r3, r2
+ 273 007a 93ED007A 		vldr.32	s14, [r3]
+ 274              		.loc 1 67 82 discriminator 4
+ 275 007e 3A4A     		ldr	r2, .L25+16
+ 276 0080 FB68     		ldr	r3, [r7, #12]
+ 277 0082 9B00     		lsls	r3, r3, #2
+ 278 0084 1344     		add	r3, r3, r2
+ 279 0086 D3ED007A 		vldr.32	s15, [r3]
+ 280              		.loc 1 67 75 discriminator 4
+ 281 008a 67EE277A 		vmul.f32	s15, s14, s15
+ 282              		.loc 1 67 18 discriminator 4
+ 283 008e 97ED007A 		vldr.32	s14, [r7]
+ 284 0092 77EE277A 		vadd.f32	s15, s14, s15
+ 285 0096 C7ED007A 		vstr.32	s15, [r7]
+  66:../source/demod.c **** 			filtered_data += inputs[CIRCULAR_INDEX_R(read_index - i, BUFFER_SIZE)] * coefs[i];
+ 286              		.loc 1 66 28 discriminator 2
+ 287 009a FB68     		ldr	r3, [r7, #12]
+ 288 009c 0133     		adds	r3, r3, #1
+ 289 009e FB60     		str	r3, [r7, #12]
+ 290              	.L8:
+  66:../source/demod.c **** 			filtered_data += inputs[CIRCULAR_INDEX_R(read_index - i, BUFFER_SIZE)] * coefs[i];
+ 291              		.loc 1 66 13 discriminator 1
+ 292 00a0 FB68     		ldr	r3, [r7, #12]
+ 293 00a2 112B     		cmp	r3, #17
+ 294 00a4 D3DD     		ble	.L11
+  68:../source/demod.c **** 		}
+  69:../source/demod.c **** 		read_index = UPDATE_INDEX(read_index,BUFFER_SIZE);
+ 295              		.loc 1 69 16
+ 296 00a6 2E4B     		ldr	r3, .L25+8
+ 297 00a8 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 298              		.loc 1 69 14
+ 299 00aa 632B     		cmp	r3, #99
+ 300 00ac 04D0     		beq	.L12
+ 301              		.loc 1 69 16 discriminator 1
+ 302 00ae 2C4B     		ldr	r3, .L25+8
+ 303 00b0 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 304              		.loc 1 69 14 discriminator 1
+ 305 00b2 0133     		adds	r3, r3, #1
+ 306 00b4 DBB2     		uxtb	r3, r3
+ 307 00b6 00E0     		b	.L13
+ 308              	.L12:
+ 309              		.loc 1 69 14 is_stmt 0 discriminator 2
+ 310 00b8 0023     		movs	r3, #0
+ 311              	.L13:
+ 312              		.loc 1 69 14 discriminator 4
+ 313 00ba 294A     		ldr	r2, .L25+8
+ 314 00bc 1370     		strb	r3, [r2]
+  70:../source/demod.c **** 
+  71:../source/demod.c **** 		if(filtered_data > V_TH){
+ 315              		.loc 1 71 5 is_stmt 1
+ 316 00be D7ED007A 		vldr.32	s15, [r7]
+ 317 00c2 9FED2A7A 		vldr.32	s14, .L25+20
+ 318 00c6 F4EEC77A 		vcmpe.f32	s15, s14
+ 319 00ca F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 320 00ce 03DD     		ble	.L24
+  72:../source/demod.c **** 				current_state = LOGIC_0;	// Set to 0 when amplitude is greater than V_th
+ 321              		.loc 1 72 19
+ 322 00d0 274B     		ldr	r3, .L25+24
+ 323 00d2 0022     		movs	r2, #0
+ 324 00d4 1A70     		strb	r2, [r3]
+ 325 00d6 0BE0     		b	.L16
+ 326              	.L24:
+  73:../source/demod.c **** 		}
+  74:../source/demod.c **** 		else if( filtered_data < V_TL){
+ 327              		.loc 1 74 10
+ 328 00d8 D7ED007A 		vldr.32	s15, [r7]
+ 329 00dc 9FED257A 		vldr.32	s14, .L25+28
+ 330 00e0 F4EEC77A 		vcmpe.f32	s15, s14
+ 331 00e4 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 332 00e8 02D5     		bpl	.L16
+  75:../source/demod.c **** 				current_state = LOGIC_1;	//Set to 1 when amplitude is less than V_tl
+ 333              		.loc 1 75 19
+ 334 00ea 214B     		ldr	r3, .L25+24
+ 335 00ec 0122     		movs	r2, #1
+ 336 00ee 1A70     		strb	r2, [r3]
+ 337              	.L16:
+  76:../source/demod.c **** 		}
+  77:../source/demod.c **** 		data_fsm(current_state);
+ 338              		.loc 1 77 3
+ 339 00f0 1F4B     		ldr	r3, .L25+24
+ 340 00f2 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 341 00f4 1846     		mov	r0, r3
+ 342 00f6 FFF7FEFF 		bl	data_fsm
+  78:../source/demod.c **** 
+  79:../source/demod.c **** 		demod_bitstream[demod_write_index]= current_state;						//load data into array
+ 343              		.loc 1 79 18
+ 344 00fa 1F4B     		ldr	r3, .L25+32
+ 345 00fc 1B68     		ldr	r3, [r3]
+ 346 00fe 1F4A     		ldr	r2, .L25+36
+ 347 0100 1288     		ldrh	r2, [r2]
+ 348 0102 1344     		add	r3, r3, r2
+ 349              		.loc 1 79 37
+ 350 0104 1A4A     		ldr	r2, .L25+24
+ 351 0106 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+ 352 0108 1A70     		strb	r2, [r3]
+  80:../source/demod.c **** 		demod_write_index = UPDATE_INDEX(demod_write_index, BITSTREAM_SIZE);	//update write index
+ 353              		.loc 1 80 23
+ 354 010a 1C4B     		ldr	r3, .L25+36
+ 355 010c 1B88     		ldrh	r3, [r3]
+ 356              		.loc 1 80 21
+ 357 010e 40F2E732 		movw	r2, #999
+ 358 0112 9342     		cmp	r3, r2
+ 359 0114 04D0     		beq	.L18
+ 360              		.loc 1 80 23 discriminator 1
+ 361 0116 194B     		ldr	r3, .L25+36
+ 362 0118 1B88     		ldrh	r3, [r3]
+ 363              		.loc 1 80 21 discriminator 1
+ 364 011a 0133     		adds	r3, r3, #1
+ 365 011c 9BB2     		uxth	r3, r3
+ 366 011e 00E0     		b	.L19
+ 367              	.L18:
+ 368              		.loc 1 80 21 is_stmt 0 discriminator 2
+ 369 0120 0023     		movs	r3, #0
+ 370              	.L19:
+ 371              		.loc 1 80 21 discriminator 4
+ 372 0122 164A     		ldr	r2, .L25+36
+ 373 0124 1380     		strh	r3, [r2]	@ movhi
   81:../source/demod.c **** 
-  82:../source/demod.c **** void add_data(uint16_t new_data){
- 403              		.loc 1 82 33
- 404              		.cfi_startproc
- 405              		@ args = 0, pretend = 0, frame = 8
- 406              		@ frame_needed = 1, uses_anonymous_args = 0
- 407              		@ link register save eliminated.
- 408 0000 80B4     		push	{r7}
- 409              		.cfi_def_cfa_offset 4
- 410              		.cfi_offset 7, -4
- 411 0002 83B0     		sub	sp, sp, #12
- 412              		.cfi_def_cfa_offset 16
- 413 0004 00AF     		add	r7, sp, #0
- 414              		.cfi_def_cfa_register 7
- 415 0006 0346     		mov	r3, r0
- 416 0008 FB80     		strh	r3, [r7, #6]	@ movhi
-  83:../source/demod.c **** 
-  84:../source/demod.c **** 	raw_inputs[write_index_raw] = (new_data-2048)*(3.3f)/4095;
- 417              		.loc 1 84 41
- 418 000a FB88     		ldrh	r3, [r7, #6]
- 419 000c A3F50063 		sub	r3, r3, #2048
- 420              		.loc 1 84 47
- 421 0010 07EE903A 		vmov	s15, r3	@ int
- 422 0014 F8EEE77A 		vcvt.f32.s32	s15, s15
- 423 0018 9FED297A 		vldr.32	s14, .L34
- 424 001c 27EE877A 		vmul.f32	s14, s15, s14
- 425              		.loc 1 84 12
- 426 0020 284B     		ldr	r3, .L34+4
- 427 0022 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 428              		.loc 1 84 54
- 429 0024 DFED286A 		vldr.32	s13, .L34+8
- 430 0028 C7EE267A 		vdiv.f32	s15, s14, s13
- 431              		.loc 1 84 30
- 432 002c 274A     		ldr	r2, .L34+12
- 433 002e 9B00     		lsls	r3, r3, #2
- 434 0030 1344     		add	r3, r3, r2
- 435 0032 C3ED007A 		vstr.32	s15, [r3]
-  85:../source/demod.c **** 	inputs[write_index] = raw_inputs[write_index_raw] * raw_inputs[CIRCULAR_INDEX_R(write_index_raw-(M
- 436              		.loc 1 85 34
- 437 0036 234B     		ldr	r3, .L34+4
- 438 0038 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 439 003a 244A     		ldr	r2, .L34+12
- 440 003c 9B00     		lsls	r3, r3, #2
- 441 003e 1344     		add	r3, r3, r2
- 442 0040 93ED007A 		vldr.32	s14, [r3]
- 443              		.loc 1 85 65
- 444 0044 1F4B     		ldr	r3, .L34+4
- 445 0046 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 446 0048 042B     		cmp	r3, #4
- 447 004a 03D8     		bhi	.L28
- 448              		.loc 1 85 65 is_stmt 0 discriminator 1
- 449 004c 1D4B     		ldr	r3, .L34+4
- 450 004e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 451 0050 0133     		adds	r3, r3, #1
- 452 0052 02E0     		b	.L29
- 453              	.L28:
- 454              		.loc 1 85 65 discriminator 2
- 455 0054 1B4B     		ldr	r3, .L34+4
- 456 0056 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 457 0058 053B     		subs	r3, r3, #5
- 458              	.L29:
- 459              		.loc 1 85 64 is_stmt 1 discriminator 4
- 460 005a 1C4A     		ldr	r2, .L34+12
- 461 005c 9B00     		lsls	r3, r3, #2
- 462 005e 1344     		add	r3, r3, r2
- 463 0060 D3ED007A 		vldr.32	s15, [r3]
- 464              		.loc 1 85 8 discriminator 4
- 465 0064 1A4B     		ldr	r3, .L34+16
- 466 0066 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 467              		.loc 1 85 52 discriminator 4
- 468 0068 67EE277A 		vmul.f32	s15, s14, s15
- 469              		.loc 1 85 22 discriminator 4
- 470 006c 194A     		ldr	r2, .L34+20
- 471 006e 9B00     		lsls	r3, r3, #2
- 472 0070 1344     		add	r3, r3, r2
- 473 0072 C3ED007A 		vstr.32	s15, [r3]
-  86:../source/demod.c **** 
-  87:../source/demod.c **** 	write_index_raw = UPDATE_INDEX(write_index_raw ,MULT_BUFF_SIZE);
- 474              		.loc 1 87 20
- 475 0076 134B     		ldr	r3, .L34+4
- 476 0078 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 477              		.loc 1 87 18
- 478 007a 052B     		cmp	r3, #5
- 479 007c 04D0     		beq	.L30
- 480              		.loc 1 87 20 discriminator 1
- 481 007e 114B     		ldr	r3, .L34+4
- 482 0080 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 483              		.loc 1 87 18 discriminator 1
- 484 0082 0133     		adds	r3, r3, #1
- 485 0084 DBB2     		uxtb	r3, r3
- 486 0086 00E0     		b	.L31
- 487              	.L30:
- 488              		.loc 1 87 18 is_stmt 0 discriminator 2
- 489 0088 0023     		movs	r3, #0
- 490              	.L31:
- 491              		.loc 1 87 18 discriminator 4
- 492 008a 0E4A     		ldr	r2, .L34+4
- 493 008c 1370     		strb	r3, [r2]
-  88:../source/demod.c **** 	write_index = UPDATE_INDEX(write_index,BUFFER_SIZE);
- 494              		.loc 1 88 16 is_stmt 1
- 495 008e 104B     		ldr	r3, .L34+16
- 496 0090 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 497              		.loc 1 88 14
- 498 0092 632B     		cmp	r3, #99
- 499 0094 04D0     		beq	.L32
- 500              		.loc 1 88 16 discriminator 1
- 501 0096 0E4B     		ldr	r3, .L34+16
- 502 0098 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 503              		.loc 1 88 14 discriminator 1
- 504 009a 0133     		adds	r3, r3, #1
- 505 009c DBB2     		uxtb	r3, r3
- 506 009e 00E0     		b	.L33
- 507              	.L32:
- 508              		.loc 1 88 14 is_stmt 0 discriminator 2
- 509 00a0 0023     		movs	r3, #0
- 510              	.L33:
- 511              		.loc 1 88 14 discriminator 4
- 512 00a2 0B4A     		ldr	r2, .L34+16
- 513 00a4 1370     		strb	r3, [r2]
-  89:../source/demod.c **** 	unfiltered_data_count++;
- 514              		.loc 1 89 23 is_stmt 1
- 515 00a6 0C4B     		ldr	r3, .L34+24
- 516 00a8 1B88     		ldrh	r3, [r3]
- 517 00aa 0133     		adds	r3, r3, #1
- 518 00ac 9AB2     		uxth	r2, r3
- 519 00ae 0A4B     		ldr	r3, .L34+24
- 520 00b0 1A80     		strh	r2, [r3]	@ movhi
+  82:../source/demod.c **** 		unfiltered_data_count--;
+ 374              		.loc 1 82 24 is_stmt 1
+ 375 0126 164B     		ldr	r3, .L25+40
+ 376 0128 1B88     		ldrh	r3, [r3]
+ 377 012a 013B     		subs	r3, r3, #1
+ 378 012c 9AB2     		uxth	r2, r3
+ 379 012e 144B     		ldr	r3, .L25+40
+ 380 0130 1A80     		strh	r2, [r3]	@ movhi
+  83:../source/demod.c **** 		filtered_data=0;			//restart the aux variable.
+ 381              		.loc 1 83 16
+ 382 0132 4FF00003 		mov	r3, #0
+ 383 0136 3B60     		str	r3, [r7]	@ float
+  64:../source/demod.c **** 	{
+ 384              		.loc 1 64 24 discriminator 2
+ 385 0138 BB68     		ldr	r3, [r7, #8]
+ 386 013a 0133     		adds	r3, r3, #1
+ 387 013c BB60     		str	r3, [r7, #8]
+ 388              	.L7:
+  64:../source/demod.c **** 	{
+ 389              		.loc 1 64 12 discriminator 1
+ 390 013e FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 391 0140 BA68     		ldr	r2, [r7, #8]
+ 392 0142 9A42     		cmp	r2, r3
+ 393 0144 80DB     		blt	.L20
+  84:../source/demod.c **** 	}
+  85:../source/demod.c **** 	#ifdef DEBUG_PIN
+  86:../source/demod.c **** 		DEBUG_TP_CLR;
+ 394              		.loc 1 86 3
+ 395 0146 0F4B     		ldr	r3, .L25+44
+ 396 0148 4FF40002 		mov	r2, #8388608
+ 397 014c 1A60     		str	r2, [r3]
+  87:../source/demod.c **** 		//GPIO_Clear(PTC, GPIO_OUT(12));
+  88:../source/demod.c **** 	#endif
+  89:../source/demod.c **** 	return num_data;
+ 398              		.loc 1 89 9
+ 399 014e FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
   90:../source/demod.c **** }
- 521              		.loc 1 90 1
- 522 00b2 00BF     		nop
- 523 00b4 0C37     		adds	r7, r7, #12
- 524              		.cfi_def_cfa_offset 4
- 525 00b6 BD46     		mov	sp, r7
- 526              		.cfi_def_cfa_register 13
- 527              		@ sp needed
- 528 00b8 5DF8047B 		ldr	r7, [sp], #4
- 529              		.cfi_restore 7
- 530              		.cfi_def_cfa_offset 0
- 531 00bc 7047     		bx	lr
- 532              	.L35:
- 533 00be 00BF     		.align	2
- 534              	.L34:
- 535 00c0 33335340 		.word	1079194419
- 536 00c4 00000000 		.word	write_index_raw
- 537 00c8 00F07F45 		.word	1166012416
- 538 00cc 00000000 		.word	raw_inputs
- 539 00d0 00000000 		.word	write_index
- 540 00d4 00000000 		.word	inputs
- 541 00d8 00000000 		.word	unfiltered_data_count
- 542              		.cfi_endproc
- 543              	.LFE125:
- 545              		.section	.text.get_unfiltered_count,"ax",%progbits
- 546              		.align	1
- 547              		.global	get_unfiltered_count
- 548              		.syntax unified
- 549              		.thumb
- 550              		.thumb_func
- 552              	get_unfiltered_count:
- 553              	.LFB126:
+ 400              		.loc 1 90 1
+ 401 0150 1846     		mov	r0, r3
+ 402 0152 1037     		adds	r7, r7, #16
+ 403              		.cfi_def_cfa_offset 8
+ 404 0154 BD46     		mov	sp, r7
+ 405              		.cfi_def_cfa_register 13
+ 406              		@ sp needed
+ 407 0156 80BD     		pop	{r7, pc}
+ 408              	.L26:
+ 409              		.align	2
+ 410              	.L25:
+ 411 0158 44F00F40 		.word	1074786372
+ 412 015c 00000000 		.word	write_index
+ 413 0160 00000000 		.word	read_index
+ 414 0164 00000000 		.word	inputs
+ 415 0168 00000000 		.word	coefs
+ 416 016c CDCCCC3D 		.word	1036831949
+ 417 0170 00000000 		.word	current_state
+ 418 0174 CDCC4CBE 		.word	-1102263091
+ 419 0178 00000000 		.word	demod_bitstream
+ 420 017c 00000000 		.word	demod_write_index
+ 421 0180 00000000 		.word	unfiltered_data_count
+ 422 0184 48F00F40 		.word	1074786376
+ 423              		.cfi_endproc
+ 424              	.LFE124:
+ 426              		.section	.text.add_data,"ax",%progbits
+ 427              		.align	1
+ 428              		.global	add_data
+ 429              		.syntax unified
+ 430              		.thumb
+ 431              		.thumb_func
+ 433              	add_data:
+ 434              	.LFB125:
   91:../source/demod.c **** 
-  92:../source/demod.c **** 
-  93:../source/demod.c **** uint16_t get_unfiltered_count(void){
- 554              		.loc 1 93 36
- 555              		.cfi_startproc
- 556              		@ args = 0, pretend = 0, frame = 0
- 557              		@ frame_needed = 1, uses_anonymous_args = 0
- 558              		@ link register save eliminated.
- 559 0000 80B4     		push	{r7}
- 560              		.cfi_def_cfa_offset 4
- 561              		.cfi_offset 7, -4
- 562 0002 00AF     		add	r7, sp, #0
- 563              		.cfi_def_cfa_register 7
-  94:../source/demod.c **** 	return unfiltered_data_count;
- 564              		.loc 1 94 9
- 565 0004 034B     		ldr	r3, .L38
- 566 0006 1B88     		ldrh	r3, [r3]
-  95:../source/demod.c **** }
- 567              		.loc 1 95 1
- 568 0008 1846     		mov	r0, r3
- 569 000a BD46     		mov	sp, r7
- 570              		.cfi_def_cfa_register 13
- 571              		@ sp needed
- 572 000c 5DF8047B 		ldr	r7, [sp], #4
- 573              		.cfi_restore 7
- 574              		.cfi_def_cfa_offset 0
- 575 0010 7047     		bx	lr
- 576              	.L39:
- 577 0012 00BF     		.align	2
- 578              	.L38:
- 579 0014 00000000 		.word	unfiltered_data_count
- 580              		.cfi_endproc
- 581              	.LFE126:
- 583              		.text
- 584              	.Letext0:
- 585              		.file 2 "C:/nxp/MCUXpressoIDE_11.10.0_3148/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.10.0.2023
- 586              		.file 3 "../source/ADC.h"
+  92:../source/demod.c **** void add_data(uint16_t new_data){
+ 435              		.loc 1 92 33
+ 436              		.cfi_startproc
+ 437              		@ args = 0, pretend = 0, frame = 8
+ 438              		@ frame_needed = 1, uses_anonymous_args = 0
+ 439              		@ link register save eliminated.
+ 440 0000 80B4     		push	{r7}
+ 441              		.cfi_def_cfa_offset 4
+ 442              		.cfi_offset 7, -4
+ 443 0002 83B0     		sub	sp, sp, #12
+ 444              		.cfi_def_cfa_offset 16
+ 445 0004 00AF     		add	r7, sp, #0
+ 446              		.cfi_def_cfa_register 7
+ 447 0006 0346     		mov	r3, r0
+ 448 0008 FB80     		strh	r3, [r7, #6]	@ movhi
+  93:../source/demod.c **** 
+  94:../source/demod.c **** 	raw_inputs[write_index_raw] = (new_data-2048)*(3.3f)/4095;
+ 449              		.loc 1 94 41
+ 450 000a FB88     		ldrh	r3, [r7, #6]
+ 451 000c A3F50063 		sub	r3, r3, #2048
+ 452              		.loc 1 94 47
+ 453 0010 07EE903A 		vmov	s15, r3	@ int
+ 454 0014 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 455 0018 9FED297A 		vldr.32	s14, .L34
+ 456 001c 27EE877A 		vmul.f32	s14, s15, s14
+ 457              		.loc 1 94 12
+ 458 0020 284B     		ldr	r3, .L34+4
+ 459 0022 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 460              		.loc 1 94 54
+ 461 0024 DFED286A 		vldr.32	s13, .L34+8
+ 462 0028 C7EE267A 		vdiv.f32	s15, s14, s13
+ 463              		.loc 1 94 30
+ 464 002c 274A     		ldr	r2, .L34+12
+ 465 002e 9B00     		lsls	r3, r3, #2
+ 466 0030 1344     		add	r3, r3, r2
+ 467 0032 C3ED007A 		vstr.32	s15, [r3]
+  95:../source/demod.c **** 	inputs[write_index] = raw_inputs[write_index_raw] * raw_inputs[CIRCULAR_INDEX_R(write_index_raw-(M
+ 468              		.loc 1 95 34
+ 469 0036 234B     		ldr	r3, .L34+4
+ 470 0038 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 471 003a 244A     		ldr	r2, .L34+12
+ 472 003c 9B00     		lsls	r3, r3, #2
+ 473 003e 1344     		add	r3, r3, r2
+ 474 0040 93ED007A 		vldr.32	s14, [r3]
+ 475              		.loc 1 95 65
+ 476 0044 1F4B     		ldr	r3, .L34+4
+ 477 0046 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 478 0048 042B     		cmp	r3, #4
+ 479 004a 03D8     		bhi	.L28
+ 480              		.loc 1 95 65 is_stmt 0 discriminator 1
+ 481 004c 1D4B     		ldr	r3, .L34+4
+ 482 004e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 483 0050 0133     		adds	r3, r3, #1
+ 484 0052 02E0     		b	.L29
+ 485              	.L28:
+ 486              		.loc 1 95 65 discriminator 2
+ 487 0054 1B4B     		ldr	r3, .L34+4
+ 488 0056 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 489 0058 053B     		subs	r3, r3, #5
+ 490              	.L29:
+ 491              		.loc 1 95 64 is_stmt 1 discriminator 4
+ 492 005a 1C4A     		ldr	r2, .L34+12
+ 493 005c 9B00     		lsls	r3, r3, #2
+ 494 005e 1344     		add	r3, r3, r2
+ 495 0060 D3ED007A 		vldr.32	s15, [r3]
+ 496              		.loc 1 95 8 discriminator 4
+ 497 0064 1A4B     		ldr	r3, .L34+16
+ 498 0066 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 499              		.loc 1 95 52 discriminator 4
+ 500 0068 67EE277A 		vmul.f32	s15, s14, s15
+ 501              		.loc 1 95 22 discriminator 4
+ 502 006c 194A     		ldr	r2, .L34+20
+ 503 006e 9B00     		lsls	r3, r3, #2
+ 504 0070 1344     		add	r3, r3, r2
+ 505 0072 C3ED007A 		vstr.32	s15, [r3]
+  96:../source/demod.c **** 
+  97:../source/demod.c **** 	write_index_raw = UPDATE_INDEX(write_index_raw ,MULT_BUFF_SIZE);
+ 506              		.loc 1 97 20
+ 507 0076 134B     		ldr	r3, .L34+4
+ 508 0078 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 509              		.loc 1 97 18
+ 510 007a 052B     		cmp	r3, #5
+ 511 007c 04D0     		beq	.L30
+ 512              		.loc 1 97 20 discriminator 1
+ 513 007e 114B     		ldr	r3, .L34+4
+ 514 0080 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 515              		.loc 1 97 18 discriminator 1
+ 516 0082 0133     		adds	r3, r3, #1
+ 517 0084 DBB2     		uxtb	r3, r3
+ 518 0086 00E0     		b	.L31
+ 519              	.L30:
+ 520              		.loc 1 97 18 is_stmt 0 discriminator 2
+ 521 0088 0023     		movs	r3, #0
+ 522              	.L31:
+ 523              		.loc 1 97 18 discriminator 4
+ 524 008a 0E4A     		ldr	r2, .L34+4
+ 525 008c 1370     		strb	r3, [r2]
+  98:../source/demod.c **** 	write_index = UPDATE_INDEX(write_index,BUFFER_SIZE);
+ 526              		.loc 1 98 16 is_stmt 1
+ 527 008e 104B     		ldr	r3, .L34+16
+ 528 0090 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 529              		.loc 1 98 14
+ 530 0092 632B     		cmp	r3, #99
+ 531 0094 04D0     		beq	.L32
+ 532              		.loc 1 98 16 discriminator 1
+ 533 0096 0E4B     		ldr	r3, .L34+16
+ 534 0098 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 535              		.loc 1 98 14 discriminator 1
+ 536 009a 0133     		adds	r3, r3, #1
+ 537 009c DBB2     		uxtb	r3, r3
+ 538 009e 00E0     		b	.L33
+ 539              	.L32:
+ 540              		.loc 1 98 14 is_stmt 0 discriminator 2
+ 541 00a0 0023     		movs	r3, #0
+ 542              	.L33:
+ 543              		.loc 1 98 14 discriminator 4
+ 544 00a2 0B4A     		ldr	r2, .L34+16
+ 545 00a4 1370     		strb	r3, [r2]
+  99:../source/demod.c **** 	unfiltered_data_count++;
+ 546              		.loc 1 99 23 is_stmt 1
+ 547 00a6 0C4B     		ldr	r3, .L34+24
+ 548 00a8 1B88     		ldrh	r3, [r3]
+ 549 00aa 0133     		adds	r3, r3, #1
+ 550 00ac 9AB2     		uxth	r2, r3
+ 551 00ae 0A4B     		ldr	r3, .L34+24
+ 552 00b0 1A80     		strh	r2, [r3]	@ movhi
+ 100:../source/demod.c **** }
+ 553              		.loc 1 100 1
+ 554 00b2 00BF     		nop
+ 555 00b4 0C37     		adds	r7, r7, #12
+ 556              		.cfi_def_cfa_offset 4
+ 557 00b6 BD46     		mov	sp, r7
+ 558              		.cfi_def_cfa_register 13
+ 559              		@ sp needed
+ 560 00b8 5DF8047B 		ldr	r7, [sp], #4
+ 561              		.cfi_restore 7
+ 562              		.cfi_def_cfa_offset 0
+ 563 00bc 7047     		bx	lr
+ 564              	.L35:
+ 565 00be 00BF     		.align	2
+ 566              	.L34:
+ 567 00c0 33335340 		.word	1079194419
+ 568 00c4 00000000 		.word	write_index_raw
+ 569 00c8 00F07F45 		.word	1166012416
+ 570 00cc 00000000 		.word	raw_inputs
+ 571 00d0 00000000 		.word	write_index
+ 572 00d4 00000000 		.word	inputs
+ 573 00d8 00000000 		.word	unfiltered_data_count
+ 574              		.cfi_endproc
+ 575              	.LFE125:
+ 577              		.section	.text.get_unfiltered_count,"ax",%progbits
+ 578              		.align	1
+ 579              		.global	get_unfiltered_count
+ 580              		.syntax unified
+ 581              		.thumb
+ 582              		.thumb_func
+ 584              	get_unfiltered_count:
+ 585              	.LFB126:
+ 101:../source/demod.c **** 
+ 102:../source/demod.c **** 
+ 103:../source/demod.c **** uint16_t get_unfiltered_count(void){
+ 586              		.loc 1 103 36
+ 587              		.cfi_startproc
+ 588              		@ args = 0, pretend = 0, frame = 0
+ 589              		@ frame_needed = 1, uses_anonymous_args = 0
+ 590              		@ link register save eliminated.
+ 591 0000 80B4     		push	{r7}
+ 592              		.cfi_def_cfa_offset 4
+ 593              		.cfi_offset 7, -4
+ 594 0002 00AF     		add	r7, sp, #0
+ 595              		.cfi_def_cfa_register 7
+ 104:../source/demod.c **** 	return unfiltered_data_count;
+ 596              		.loc 1 104 9
+ 597 0004 034B     		ldr	r3, .L38
+ 598 0006 1B88     		ldrh	r3, [r3]
+ 105:../source/demod.c **** }
+ 599              		.loc 1 105 1
+ 600 0008 1846     		mov	r0, r3
+ 601 000a BD46     		mov	sp, r7
+ 602              		.cfi_def_cfa_register 13
+ 603              		@ sp needed
+ 604 000c 5DF8047B 		ldr	r7, [sp], #4
+ 605              		.cfi_restore 7
+ 606              		.cfi_def_cfa_offset 0
+ 607 0010 7047     		bx	lr
+ 608              	.L39:
+ 609 0012 00BF     		.align	2
+ 610              	.L38:
+ 611 0014 00000000 		.word	unfiltered_data_count
+ 612              		.cfi_endproc
+ 613              	.LFE126:
+ 615              		.section	.text.data_fsm,"ax",%progbits
+ 616              		.align	1
+ 617              		.global	data_fsm
+ 618              		.syntax unified
+ 619              		.thumb
+ 620              		.thumb_func
+ 622              	data_fsm:
+ 623              	.LFB127:
+ 106:../source/demod.c **** 
+ 107:../source/demod.c **** void data_fsm(uint8_t data_in){
+ 624              		.loc 1 107 31
+ 625              		.cfi_startproc
+ 626              		@ args = 0, pretend = 0, frame = 8
+ 627              		@ frame_needed = 1, uses_anonymous_args = 0
+ 628              		@ link register save eliminated.
+ 629 0000 80B4     		push	{r7}
+ 630              		.cfi_def_cfa_offset 4
+ 631              		.cfi_offset 7, -4
+ 632 0002 83B0     		sub	sp, sp, #12
+ 633              		.cfi_def_cfa_offset 16
+ 634 0004 00AF     		add	r7, sp, #0
+ 635              		.cfi_def_cfa_register 7
+ 636 0006 0346     		mov	r3, r0
+ 637 0008 FB71     		strb	r3, [r7, #7]
+ 108:../source/demod.c **** 	switch(stream_state){
+ 638              		.loc 1 108 2
+ 639 000a 924B     		ldr	r3, .L75
+ 640 000c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 641 000e 042B     		cmp	r3, #4
+ 642 0010 00F21A81 		bhi	.L68
+ 643 0014 01A2     		adr	r2, .L43
+ 644 0016 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+ 645 001a 00BF     		.p2align 2
+ 646              	.L43:
+ 647 001c 31000000 		.word	.L47+1
+ 648 0020 59000000 		.word	.L46+1
+ 649 0024 C7000000 		.word	.L45+1
+ 650 0028 5B010000 		.word	.L44+1
+ 651 002c D5010000 		.word	.L42+1
+ 652              		.p2align 1
+ 653              	.L47:
+ 109:../source/demod.c **** 	case IDLE:
+ 110:../source/demod.c **** 		if(data_in == LOGIC_0){
+ 654              		.loc 1 110 5
+ 655 0030 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 656 0032 002B     		cmp	r3, #0
+ 657 0034 40F0FF80 		bne	.L69
+ 111:../source/demod.c **** 			stream_state = CHECK_START;
+ 658              		.loc 1 111 17
+ 659 0038 864B     		ldr	r3, .L75
+ 660 003a 0122     		movs	r2, #1
+ 661 003c 1A70     		strb	r2, [r3]
+ 112:../source/demod.c **** 			zero_count++;
+ 662              		.loc 1 112 14
+ 663 003e 864B     		ldr	r3, .L75+4
+ 664 0040 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 665 0042 0133     		adds	r3, r3, #1
+ 666 0044 DAB2     		uxtb	r2, r3
+ 667 0046 844B     		ldr	r3, .L75+4
+ 668 0048 1A70     		strb	r2, [r3]
+ 113:../source/demod.c **** 			sample_count++;
+ 669              		.loc 1 113 16
+ 670 004a 844B     		ldr	r3, .L75+8
+ 671 004c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 672 004e 0133     		adds	r3, r3, #1
+ 673 0050 DAB2     		uxtb	r2, r3
+ 674 0052 824B     		ldr	r3, .L75+8
+ 675 0054 1A70     		strb	r2, [r3]
+ 114:../source/demod.c **** 		}
+ 115:../source/demod.c **** 		break;
+ 676              		.loc 1 115 3
+ 677 0056 EEE0     		b	.L69
+ 678              	.L46:
+ 116:../source/demod.c **** 	case CHECK_START:
+ 117:../source/demod.c **** 		sample_count++;
+ 679              		.loc 1 117 15
+ 680 0058 804B     		ldr	r3, .L75+8
+ 681 005a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 682 005c 0133     		adds	r3, r3, #1
+ 683 005e DAB2     		uxtb	r2, r3
+ 684 0060 7E4B     		ldr	r3, .L75+8
+ 685 0062 1A70     		strb	r2, [r3]
+ 118:../source/demod.c **** 		if((sample_count < 6) && (data_in == LOGIC_0)){
+ 686              		.loc 1 118 20
+ 687 0064 7D4B     		ldr	r3, .L75+8
+ 688 0066 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 689              		.loc 1 118 5
+ 690 0068 052B     		cmp	r3, #5
+ 691 006a 09D8     		bhi	.L49
+ 692              		.loc 1 118 25 discriminator 1
+ 693 006c FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 694 006e 002B     		cmp	r3, #0
+ 695 0070 06D1     		bne	.L49
+ 119:../source/demod.c **** 			zero_count++;
+ 696              		.loc 1 119 14
+ 697 0072 794B     		ldr	r3, .L75+4
+ 698 0074 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 699 0076 0133     		adds	r3, r3, #1
+ 700 0078 DAB2     		uxtb	r2, r3
+ 701 007a 774B     		ldr	r3, .L75+4
+ 702 007c 1A70     		strb	r2, [r3]
+ 120:../source/demod.c **** 		}
+ 121:../source/demod.c **** 		else if (sample_count == OVERSAMPLE_RATE){
+ 122:../source/demod.c **** 			if(zero_count > 2){
+ 123:../source/demod.c **** 				stream_state = RECIEVING;	//mayority of the sampled bits are 0. start is considered
+ 124:../source/demod.c **** 				error_flag=0;
+ 125:../source/demod.c **** 				data_byte =0;
+ 126:../source/demod.c **** 			}
+ 127:../source/demod.c **** 			else{
+ 128:../source/demod.c **** 				stream_state = IDLE;		//considered a false start
+ 129:../source/demod.c **** 			}
+ 130:../source/demod.c **** 			zero_count=0;			//reset counters
+ 131:../source/demod.c **** 			sample_count =0;
+ 132:../source/demod.c **** 			parity =0;				//reset parity
+ 133:../source/demod.c **** 			bit_count = 0;			//make sure bit_count is in 0
+ 134:../source/demod.c **** 		}
+ 135:../source/demod.c **** 
+ 136:../source/demod.c **** 		break;
+ 703              		.loc 1 136 3
+ 704 007e DCE0     		b	.L70
+ 705              	.L49:
+ 121:../source/demod.c **** 			if(zero_count > 2){
+ 706              		.loc 1 121 25
+ 707 0080 764B     		ldr	r3, .L75+8
+ 708 0082 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 121:../source/demod.c **** 			if(zero_count > 2){
+ 709              		.loc 1 121 11
+ 710 0084 0A2B     		cmp	r3, #10
+ 711 0086 40F0D880 		bne	.L70
+ 122:../source/demod.c **** 				stream_state = RECIEVING;	//mayority of the sampled bits are 0. start is considered
+ 712              		.loc 1 122 18
+ 713 008a 734B     		ldr	r3, .L75+4
+ 714 008c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 122:../source/demod.c **** 				stream_state = RECIEVING;	//mayority of the sampled bits are 0. start is considered
+ 715              		.loc 1 122 6
+ 716 008e 022B     		cmp	r3, #2
+ 717 0090 09D9     		bls	.L51
+ 123:../source/demod.c **** 				error_flag=0;
+ 718              		.loc 1 123 18
+ 719 0092 704B     		ldr	r3, .L75
+ 720 0094 0222     		movs	r2, #2
+ 721 0096 1A70     		strb	r2, [r3]
+ 124:../source/demod.c **** 				data_byte =0;
+ 722              		.loc 1 124 15
+ 723 0098 714B     		ldr	r3, .L75+12
+ 724 009a 0022     		movs	r2, #0
+ 725 009c 1A70     		strb	r2, [r3]
+ 125:../source/demod.c **** 			}
+ 726              		.loc 1 125 15
+ 727 009e 714B     		ldr	r3, .L75+16
+ 728 00a0 0022     		movs	r2, #0
+ 729 00a2 1A70     		strb	r2, [r3]
+ 730 00a4 02E0     		b	.L52
+ 731              	.L51:
+ 128:../source/demod.c **** 			}
+ 732              		.loc 1 128 18
+ 733 00a6 6B4B     		ldr	r3, .L75
+ 734 00a8 0022     		movs	r2, #0
+ 735 00aa 1A70     		strb	r2, [r3]
+ 736              	.L52:
+ 130:../source/demod.c **** 			sample_count =0;
+ 737              		.loc 1 130 14
+ 738 00ac 6A4B     		ldr	r3, .L75+4
+ 739 00ae 0022     		movs	r2, #0
+ 740 00b0 1A70     		strb	r2, [r3]
+ 131:../source/demod.c **** 			parity =0;				//reset parity
+ 741              		.loc 1 131 17
+ 742 00b2 6A4B     		ldr	r3, .L75+8
+ 743 00b4 0022     		movs	r2, #0
+ 744 00b6 1A70     		strb	r2, [r3]
+ 132:../source/demod.c **** 			bit_count = 0;			//make sure bit_count is in 0
+ 745              		.loc 1 132 11
+ 746 00b8 6B4B     		ldr	r3, .L75+20
+ 747 00ba 0022     		movs	r2, #0
+ 748 00bc 1A70     		strb	r2, [r3]
+ 133:../source/demod.c **** 		}
+ 749              		.loc 1 133 14
+ 750 00be 6B4B     		ldr	r3, .L75+24
+ 751 00c0 0022     		movs	r2, #0
+ 752 00c2 1A70     		strb	r2, [r3]
+ 753              		.loc 1 136 3
+ 754 00c4 B9E0     		b	.L70
+ 755              	.L45:
+ 137:../source/demod.c **** 
+ 138:../source/demod.c **** 	case RECIEVING:
+ 139:../source/demod.c **** 		sample_count++;
+ 756              		.loc 1 139 15
+ 757 00c6 654B     		ldr	r3, .L75+8
+ 758 00c8 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 759 00ca 0133     		adds	r3, r3, #1
+ 760 00cc DAB2     		uxtb	r2, r3
+ 761 00ce 634B     		ldr	r3, .L75+8
+ 762 00d0 1A70     		strb	r2, [r3]
+ 140:../source/demod.c **** 		if((sample_count > COMP_WINDOW_LOW) && (sample_count < COMP_WINDOW_HIGH)){		//take the 5 middle s
+ 763              		.loc 1 140 20
+ 764 00d2 624B     		ldr	r3, .L75+8
+ 765 00d4 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 766              		.loc 1 140 5
+ 767 00d6 032B     		cmp	r3, #3
+ 768 00d8 0DD9     		bls	.L53
+ 769              		.loc 1 140 56 discriminator 1
+ 770 00da 604B     		ldr	r3, .L75+8
+ 771 00dc 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 772              		.loc 1 140 39 discriminator 1
+ 773 00de 082B     		cmp	r3, #8
+ 774 00e0 09D8     		bhi	.L53
+ 141:../source/demod.c **** 			if(data_in == LOGIC_0){
+ 775              		.loc 1 141 6
+ 776 00e2 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 777 00e4 002B     		cmp	r3, #0
+ 778 00e6 2DD1     		bne	.L55
+ 142:../source/demod.c **** 				zero_count++;
+ 779              		.loc 1 142 15
+ 780 00e8 5B4B     		ldr	r3, .L75+4
+ 781 00ea 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 782 00ec 0133     		adds	r3, r3, #1
+ 783 00ee DAB2     		uxtb	r2, r3
+ 784 00f0 594B     		ldr	r3, .L75+4
+ 785 00f2 1A70     		strb	r2, [r3]
+ 141:../source/demod.c **** 			if(data_in == LOGIC_0){
+ 786              		.loc 1 141 6
+ 787 00f4 26E0     		b	.L55
+ 788              	.L53:
+ 143:../source/demod.c **** 			}
+ 144:../source/demod.c **** 		}
+ 145:../source/demod.c **** 		else if(sample_count == OVERSAMPLE_RATE){
+ 789              		.loc 1 145 24
+ 790 00f6 594B     		ldr	r3, .L75+8
+ 791 00f8 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 792              		.loc 1 145 10
+ 793 00fa 0A2B     		cmp	r3, #10
+ 794 00fc 22D1     		bne	.L55
+ 146:../source/demod.c **** 			//data byte is unchanged IF 0 IS RECIEVED!!!
+ 147:../source/demod.c **** 			//if(zero_count > COMP_THRESHOLD){
+ 148:../source/demod.c **** 				//data_byte += ( 0 << bit_count);
+ 149:../source/demod.c **** 				//parity ^= LOGIC_0;
+ 150:../source/demod.c **** 			//}
+ 151:../source/demod.c **** 			if(zero_count <= COMP_THRESHOLD){
+ 795              		.loc 1 151 18
+ 796 00fe 564B     		ldr	r3, .L75+4
+ 797 0100 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 798              		.loc 1 151 6
+ 799 0102 022B     		cmp	r3, #2
+ 800 0104 12D8     		bhi	.L56
+ 152:../source/demod.c **** 				data_byte += (1<<bit_count);			//UART IS LSB FIRST. SHIFT THE DATA BIT N BITS AND ADD IT
+ 801              		.loc 1 152 20
+ 802 0106 594B     		ldr	r3, .L75+24
+ 803 0108 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 804 010a 1A46     		mov	r2, r3
+ 805 010c 0123     		movs	r3, #1
+ 806 010e 9340     		lsls	r3, r3, r2
+ 807              		.loc 1 152 15
+ 808 0110 DAB2     		uxtb	r2, r3
+ 809 0112 544B     		ldr	r3, .L75+16
+ 810 0114 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 811 0116 1344     		add	r3, r3, r2
+ 812 0118 DAB2     		uxtb	r2, r3
+ 813 011a 524B     		ldr	r3, .L75+16
+ 814 011c 1A70     		strb	r2, [r3]
+ 153:../source/demod.c **** 				parity ^= LOGIC_1;
+ 815              		.loc 1 153 12
+ 816 011e 524B     		ldr	r3, .L75+20
+ 817 0120 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 818 0122 83F00103 		eor	r3, r3, #1
+ 819 0126 DAB2     		uxtb	r2, r3
+ 820 0128 4F4B     		ldr	r3, .L75+20
+ 821 012a 1A70     		strb	r2, [r3]
+ 822              	.L56:
+ 154:../source/demod.c **** 			}
+ 155:../source/demod.c **** 			zero_count =0;			//Restart counters
+ 823              		.loc 1 155 15
+ 824 012c 4A4B     		ldr	r3, .L75+4
+ 825 012e 0022     		movs	r2, #0
+ 826 0130 1A70     		strb	r2, [r3]
+ 156:../source/demod.c **** 			sample_count=0;
+ 827              		.loc 1 156 16
+ 828 0132 4A4B     		ldr	r3, .L75+8
+ 829 0134 0022     		movs	r2, #0
+ 830 0136 1A70     		strb	r2, [r3]
+ 157:../source/demod.c **** 			bit_count++;		//add 1 to bit count
+ 831              		.loc 1 157 13
+ 832 0138 4C4B     		ldr	r3, .L75+24
+ 833 013a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 834 013c 0133     		adds	r3, r3, #1
+ 835 013e DAB2     		uxtb	r2, r3
+ 836 0140 4A4B     		ldr	r3, .L75+24
+ 837 0142 1A70     		strb	r2, [r3]
+ 838              	.L55:
+ 158:../source/demod.c **** 		}
+ 159:../source/demod.c **** 
+ 160:../source/demod.c **** 		if(bit_count == INFO_BIT_NUM){		//if 8 bits of data have been read
+ 839              		.loc 1 160 16
+ 840 0144 494B     		ldr	r3, .L75+24
+ 841 0146 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 842              		.loc 1 160 5
+ 843 0148 082B     		cmp	r3, #8
+ 844 014a 78D1     		bne	.L71
+ 161:../source/demod.c **** 			bit_count=0;
+ 845              		.loc 1 161 13
+ 846 014c 474B     		ldr	r3, .L75+24
+ 847 014e 0022     		movs	r2, #0
+ 848 0150 1A70     		strb	r2, [r3]
+ 162:../source/demod.c **** 			stream_state = PARITY;
+ 849              		.loc 1 162 17
+ 850 0152 404B     		ldr	r3, .L75
+ 851 0154 0322     		movs	r2, #3
+ 852 0156 1A70     		strb	r2, [r3]
+ 163:../source/demod.c **** 		}
+ 164:../source/demod.c **** 
+ 165:../source/demod.c **** 		break;
+ 853              		.loc 1 165 3
+ 854 0158 71E0     		b	.L71
+ 855              	.L44:
+ 166:../source/demod.c **** 
+ 167:../source/demod.c **** 	case PARITY:
+ 168:../source/demod.c **** 		sample_count++;
+ 856              		.loc 1 168 15
+ 857 015a 404B     		ldr	r3, .L75+8
+ 858 015c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 859 015e 0133     		adds	r3, r3, #1
+ 860 0160 DAB2     		uxtb	r2, r3
+ 861 0162 3E4B     		ldr	r3, .L75+8
+ 862 0164 1A70     		strb	r2, [r3]
+ 169:../source/demod.c **** 		if((sample_count > COMP_WINDOW_LOW) && (sample_count < COMP_WINDOW_HIGH)){		//take the 5 middle s
+ 863              		.loc 1 169 20
+ 864 0166 3D4B     		ldr	r3, .L75+8
+ 865 0168 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 866              		.loc 1 169 5
+ 867 016a 032B     		cmp	r3, #3
+ 868 016c 0DD9     		bls	.L58
+ 869              		.loc 1 169 56 discriminator 1
+ 870 016e 3B4B     		ldr	r3, .L75+8
+ 871 0170 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 872              		.loc 1 169 39 discriminator 1
+ 873 0172 082B     		cmp	r3, #8
+ 874 0174 09D8     		bhi	.L58
+ 170:../source/demod.c **** 			if(data_in == LOGIC_0){
+ 875              		.loc 1 170 6
+ 876 0176 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 877 0178 002B     		cmp	r3, #0
+ 878 017a 2AD1     		bne	.L60
+ 171:../source/demod.c **** 				zero_count++;
+ 879              		.loc 1 171 15
+ 880 017c 364B     		ldr	r3, .L75+4
+ 881 017e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 882 0180 0133     		adds	r3, r3, #1
+ 883 0182 DAB2     		uxtb	r2, r3
+ 884 0184 344B     		ldr	r3, .L75+4
+ 885 0186 1A70     		strb	r2, [r3]
+ 170:../source/demod.c **** 			if(data_in == LOGIC_0){
+ 886              		.loc 1 170 6
+ 887 0188 23E0     		b	.L60
+ 888              	.L58:
+ 172:../source/demod.c **** 			}
+ 173:../source/demod.c **** 		}
+ 174:../source/demod.c **** 		else if(sample_count == OVERSAMPLE_RATE){
+ 889              		.loc 1 174 24
+ 890 018a 344B     		ldr	r3, .L75+8
+ 891 018c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 892              		.loc 1 174 10
+ 893 018e 0A2B     		cmp	r3, #10
+ 894 0190 57D1     		bne	.L72
+ 175:../source/demod.c **** 			//XOR with 0 doesn't change the result. Only analyze for 1
+ 176:../source/demod.c **** 			if(zero_count <= COMP_THRESHOLD){
+ 895              		.loc 1 176 18
+ 896 0192 314B     		ldr	r3, .L75+4
+ 897 0194 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 898              		.loc 1 176 6
+ 899 0196 022B     		cmp	r3, #2
+ 900 0198 06D8     		bhi	.L61
+ 177:../source/demod.c **** 				parity ^= LOGIC_1;
+ 901              		.loc 1 177 12
+ 902 019a 334B     		ldr	r3, .L75+20
+ 903 019c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 904 019e 83F00103 		eor	r3, r3, #1
+ 905 01a2 DAB2     		uxtb	r2, r3
+ 906 01a4 304B     		ldr	r3, .L75+20
+ 907 01a6 1A70     		strb	r2, [r3]
+ 908              	.L61:
+ 178:../source/demod.c **** 			}
+ 179:../source/demod.c **** 
+ 180:../source/demod.c **** 			if(parity == PARITY_VALUE){
+ 909              		.loc 1 180 14
+ 910 01a8 2F4B     		ldr	r3, .L75+20
+ 911 01aa 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 912              		.loc 1 180 6
+ 913 01ac 012B     		cmp	r3, #1
+ 914 01ae 03D1     		bne	.L62
+ 181:../source/demod.c **** 				error_flag =NO_ERR;				//check for parity
+ 915              		.loc 1 181 16
+ 916 01b0 2B4B     		ldr	r3, .L75+12
+ 917 01b2 0022     		movs	r2, #0
+ 918 01b4 1A70     		strb	r2, [r3]
+ 919 01b6 02E0     		b	.L63
+ 920              	.L62:
+ 182:../source/demod.c **** 			}
+ 183:../source/demod.c **** 			else{
+ 184:../source/demod.c **** 				error_flag =PARITY_ERR;
+ 921              		.loc 1 184 16
+ 922 01b8 294B     		ldr	r3, .L75+12
+ 923 01ba 0122     		movs	r2, #1
+ 924 01bc 1A70     		strb	r2, [r3]
+ 925              	.L63:
+ 185:../source/demod.c **** 			}
+ 186:../source/demod.c **** 
+ 187:../source/demod.c **** 			zero_count =0;			//Restart counters
+ 926              		.loc 1 187 15
+ 927 01be 264B     		ldr	r3, .L75+4
+ 928 01c0 0022     		movs	r2, #0
+ 929 01c2 1A70     		strb	r2, [r3]
+ 188:../source/demod.c **** 			sample_count=0;
+ 930              		.loc 1 188 16
+ 931 01c4 254B     		ldr	r3, .L75+8
+ 932 01c6 0022     		movs	r2, #0
+ 933 01c8 1A70     		strb	r2, [r3]
+ 189:../source/demod.c **** 			stream_state = END;
+ 934              		.loc 1 189 17
+ 935 01ca 224B     		ldr	r3, .L75
+ 936 01cc 0422     		movs	r2, #4
+ 937 01ce 1A70     		strb	r2, [r3]
+ 190:../source/demod.c **** 		}
+ 191:../source/demod.c **** 
+ 192:../source/demod.c **** 		break;
+ 938              		.loc 1 192 3
+ 939 01d0 37E0     		b	.L72
+ 940              	.L60:
+ 941 01d2 36E0     		b	.L72
+ 942              	.L42:
+ 193:../source/demod.c **** 	case END:
+ 194:../source/demod.c **** 		sample_count++;
+ 943              		.loc 1 194 15
+ 944 01d4 214B     		ldr	r3, .L75+8
+ 945 01d6 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 946 01d8 0133     		adds	r3, r3, #1
+ 947 01da DAB2     		uxtb	r2, r3
+ 948 01dc 1F4B     		ldr	r3, .L75+8
+ 949 01de 1A70     		strb	r2, [r3]
+ 195:../source/demod.c **** 		if((sample_count > COMP_WINDOW_LOW) && (sample_count < COMP_WINDOW_HIGH)){		//take the 5 middle s
+ 950              		.loc 1 195 20
+ 951 01e0 1E4B     		ldr	r3, .L75+8
+ 952 01e2 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 953              		.loc 1 195 5
+ 954 01e4 032B     		cmp	r3, #3
+ 955 01e6 0DD9     		bls	.L64
+ 956              		.loc 1 195 56 discriminator 1
+ 957 01e8 1C4B     		ldr	r3, .L75+8
+ 958 01ea 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 959              		.loc 1 195 39 discriminator 1
+ 960 01ec 082B     		cmp	r3, #8
+ 961 01ee 09D8     		bhi	.L64
+ 196:../source/demod.c **** 			if(data_in == LOGIC_0){
+ 962              		.loc 1 196 6
+ 963 01f0 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 964 01f2 002B     		cmp	r3, #0
+ 965 01f4 1ED1     		bne	.L66
+ 197:../source/demod.c **** 				zero_count++;
+ 966              		.loc 1 197 15
+ 967 01f6 184B     		ldr	r3, .L75+4
+ 968 01f8 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 969 01fa 0133     		adds	r3, r3, #1
+ 970 01fc DAB2     		uxtb	r2, r3
+ 971 01fe 164B     		ldr	r3, .L75+4
+ 972 0200 1A70     		strb	r2, [r3]
+ 196:../source/demod.c **** 			if(data_in == LOGIC_0){
+ 973              		.loc 1 196 6
+ 974 0202 17E0     		b	.L66
+ 975              	.L64:
+ 198:../source/demod.c **** 			}
+ 199:../source/demod.c **** 		}
+ 200:../source/demod.c **** 		else if(sample_count == OVERSAMPLE_RATE){
+ 976              		.loc 1 200 24
+ 977 0204 154B     		ldr	r3, .L75+8
+ 978 0206 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 979              		.loc 1 200 10
+ 980 0208 0A2B     		cmp	r3, #10
+ 981 020a 1CD1     		bne	.L73
+ 201:../source/demod.c **** 			if(zero_count > COMP_THRESHOLD){			//END BIT SHOULD BE 1.
+ 982              		.loc 1 201 18
+ 983 020c 124B     		ldr	r3, .L75+4
+ 984 020e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 985              		.loc 1 201 6
+ 986 0210 022B     		cmp	r3, #2
+ 987 0212 05D9     		bls	.L67
+ 202:../source/demod.c **** 				error_flag += END_ERR;					//By adding, if there was a parity error it will still show, because
+ 988              		.loc 1 202 16
+ 989 0214 124B     		ldr	r3, .L75+12
+ 990 0216 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 991 0218 0233     		adds	r3, r3, #2
+ 992 021a DAB2     		uxtb	r2, r3
+ 993 021c 104B     		ldr	r3, .L75+12
+ 994 021e 1A70     		strb	r2, [r3]
+ 995              	.L67:
+ 203:../source/demod.c **** 			}
+ 204:../source/demod.c **** 			zero_count =0;			//Restart counters
+ 996              		.loc 1 204 15
+ 997 0220 0D4B     		ldr	r3, .L75+4
+ 998 0222 0022     		movs	r2, #0
+ 999 0224 1A70     		strb	r2, [r3]
+ 205:../source/demod.c **** 			sample_count=0;
+ 1000              		.loc 1 205 16
+ 1001 0226 0D4B     		ldr	r3, .L75+8
+ 1002 0228 0022     		movs	r2, #0
+ 1003 022a 1A70     		strb	r2, [r3]
+ 206:../source/demod.c **** 			stream_state = IDLE;
+ 1004              		.loc 1 206 17
+ 1005 022c 094B     		ldr	r3, .L75
+ 1006 022e 0022     		movs	r2, #0
+ 1007 0230 1A70     		strb	r2, [r3]
+ 207:../source/demod.c **** 		}
+ 208:../source/demod.c **** 		break;
+ 1008              		.loc 1 208 3
+ 1009 0232 08E0     		b	.L73
+ 1010              	.L66:
+ 1011 0234 07E0     		b	.L73
+ 1012              	.L69:
+ 115:../source/demod.c **** 	case CHECK_START:
+ 1013              		.loc 1 115 3
+ 1014 0236 00BF     		nop
+ 1015 0238 06E0     		b	.L68
+ 1016              	.L70:
+ 136:../source/demod.c **** 
+ 1017              		.loc 1 136 3
+ 1018 023a 00BF     		nop
+ 1019 023c 04E0     		b	.L68
+ 1020              	.L71:
+ 165:../source/demod.c **** 
+ 1021              		.loc 1 165 3
+ 1022 023e 00BF     		nop
+ 1023 0240 02E0     		b	.L68
+ 1024              	.L72:
+ 192:../source/demod.c **** 	case END:
+ 1025              		.loc 1 192 3
+ 1026 0242 00BF     		nop
+ 1027 0244 00E0     		b	.L68
+ 1028              	.L73:
+ 1029              		.loc 1 208 3
+ 1030 0246 00BF     		nop
+ 1031              	.L68:
+ 209:../source/demod.c **** 
+ 210:../source/demod.c **** 	default:
+ 211:../source/demod.c **** 
+ 212:../source/demod.c **** 	}
+ 213:../source/demod.c **** }
+ 1032              		.loc 1 213 1
+ 1033 0248 00BF     		nop
+ 1034 024a 0C37     		adds	r7, r7, #12
+ 1035              		.cfi_def_cfa_offset 4
+ 1036 024c BD46     		mov	sp, r7
+ 1037              		.cfi_def_cfa_register 13
+ 1038              		@ sp needed
+ 1039 024e 5DF8047B 		ldr	r7, [sp], #4
+ 1040              		.cfi_restore 7
+ 1041              		.cfi_def_cfa_offset 0
+ 1042 0252 7047     		bx	lr
+ 1043              	.L76:
+ 1044              		.align	2
+ 1045              	.L75:
+ 1046 0254 00000000 		.word	stream_state
+ 1047 0258 00000000 		.word	zero_count
+ 1048 025c 00000000 		.word	sample_count
+ 1049 0260 00000000 		.word	error_flag
+ 1050 0264 00000000 		.word	data_byte
+ 1051 0268 00000000 		.word	parity
+ 1052 026c 00000000 		.word	bit_count
+ 1053              		.cfi_endproc
+ 1054              	.LFE127:
+ 1056              		.text
+ 1057              	.Letext0:
+ 1058              		.file 2 "C:/nxp/MCUXpressoIDE_11.10.0_3148/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.10.0.2023
+ 1059              		.file 3 "../source/demod.h"
+ 1060              		.file 4 "../source/ADC.h"
 DEFINED SYMBOLS
                             *ABS*:00000000 demod.c
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:21     .rodata.coefs:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:24     .rodata.coefs:00000000 coefs
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:44     .bss.raw_inputs:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:47     .bss.raw_inputs:00000000 raw_inputs
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:52     .bss.write_index_raw:00000000 write_index_raw
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:53     .bss.write_index_raw:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:55     .bss.inputs:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:58     .bss.inputs:00000000 inputs
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:61     .bss.demod_bitstream:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:64     .bss.demod_bitstream:00000000 demod_bitstream
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:69     .bss.write_index:00000000 write_index
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:70     .bss.write_index:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:74     .bss.read_index:00000000 read_index
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:75     .bss.read_index:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:77     .bss.demod_write_index:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:80     .bss.demod_write_index:00000000 demod_write_index
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:85     .bss.current_state:00000000 current_state
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:86     .bss.current_state:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:88     .bss.unfiltered_data_count:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:91     .bss.unfiltered_data_count:00000000 unfiltered_data_count
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:96     .bss.idle:00000000 idle
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:97     .bss.idle:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:99     .text.demod_init:00000000 $t
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:105    .text.demod_init:00000000 demod_init
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:138    .text.demod_init:0000001c $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:401    .text.add_data:00000000 add_data
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:144    .text.filter_data:00000000 $t
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:150    .text.filter_data:00000000 filter_data
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:379    .text.filter_data:00000154 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:395    .text.add_data:00000000 $t
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:535    .text.add_data:000000c0 $d
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:546    .text.get_unfiltered_count:00000000 $t
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:552    .text.get_unfiltered_count:00000000 get_unfiltered_count
-C:\Users\casas\AppData\Local\Temp\ccSf8DYb.s:579    .text.get_unfiltered_count:00000014 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:21     .rodata.coefs:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:24     .rodata.coefs:00000000 coefs
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:44     .bss.raw_inputs:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:47     .bss.raw_inputs:00000000 raw_inputs
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:52     .bss.write_index_raw:00000000 write_index_raw
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:53     .bss.write_index_raw:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:55     .bss.inputs:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:58     .bss.inputs:00000000 inputs
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:61     .bss.demod_bitstream:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:64     .bss.demod_bitstream:00000000 demod_bitstream
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:69     .bss.write_index:00000000 write_index
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:70     .bss.write_index:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:74     .bss.read_index:00000000 read_index
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:75     .bss.read_index:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:77     .bss.demod_write_index:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:80     .bss.demod_write_index:00000000 demod_write_index
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:85     .bss.current_state:00000000 current_state
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:86     .bss.current_state:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:88     .bss.unfiltered_data_count:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:91     .bss.unfiltered_data_count:00000000 unfiltered_data_count
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:96     .bss.stream_state:00000000 stream_state
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:97     .bss.stream_state:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:101    .bss.sample_count:00000000 sample_count
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:102    .bss.sample_count:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:106    .bss.bit_count:00000000 bit_count
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:107    .bss.bit_count:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:111    .bss.zero_count:00000000 zero_count
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:112    .bss.zero_count:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:116    .bss.parity:00000000 parity
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:117    .bss.parity:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:121    .bss.error_flag:00000000 error_flag
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:122    .bss.error_flag:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:126    .bss.data_byte:00000000 data_byte
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:127    .bss.data_byte:00000000 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:129    .text.demod_init:00000000 $t
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:135    .text.demod_init:00000000 demod_init
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:168    .text.demod_init:0000001c $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:433    .text.add_data:00000000 add_data
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:174    .text.filter_data:00000000 $t
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:180    .text.filter_data:00000000 filter_data
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:622    .text.data_fsm:00000000 data_fsm
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:411    .text.filter_data:00000158 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:427    .text.add_data:00000000 $t
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:567    .text.add_data:000000c0 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:578    .text.get_unfiltered_count:00000000 $t
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:584    .text.get_unfiltered_count:00000000 get_unfiltered_count
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:611    .text.get_unfiltered_count:00000014 $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:616    .text.data_fsm:00000000 $t
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:647    .text.data_fsm:0000001c $d
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:652    .text.data_fsm:00000030 $t
+C:\Users\casas\AppData\Local\Temp\ccpo1hK9.s:1046   .text.data_fsm:00000254 $d
                            .group:00000000 wm4.0.1dcc4abb7b230aa9a5dadaa004994123
                            .group:00000000 wm4.redlib_version.h.25.d2e865e22c1528eeae52d7d98a50fff1
                            .group:00000000 wm4.libconfigarm.h.19.34723c94cbd19598192aa6b1e87fca41
                            .group:00000000 wm4.stdint.h.31.58198de4ea930fb897655479091e17c7
-                           .group:00000000 wm4.demod.h.4.d42bffd65dfd49513ac71a79878a88ee
+                           .group:00000000 wm4.demod.h.5.392e5e569185c28281a2310642d52a48
                            .group:00000000 wm4.stdbool.h.15.fddf1cb2402fd739d8e2516677869231
                            .group:00000000 wm4.fsl_device_registers.h.32.f10b25a7fd7ad45b9a40904c33f28816
                            .group:00000000 wm4.MK64F12.h.105.e884e5c80776532d2ec0f5c21e2ea7cb
