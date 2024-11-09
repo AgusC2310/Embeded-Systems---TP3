@@ -17,59 +17,58 @@
   17              	.Ltext0:
   18              		.cfi_sections	.debug_frame
   19              		.file 1 "../source/main.c"
-  20              		.global	data
-  21              		.section	.bss.data,"aw",%nobits
-  22              		.align	1
-  25              	data:
-  26 0000 0000     		.space	2
-  27              		.global	dato
-  28              		.section	.bss.dato,"aw",%nobits
+  20              		.global	cont
+  21              		.section	.bss.cont,"aw",%nobits
+  22              		.align	2
+  25              	cont:
+  26 0000 00000000 		.space	4
+  27              		.global	conf
+  28              		.section	.bss.conf,"aw",%nobits
   29              		.align	2
-  32              	dato:
-  33 0000 00000000 		.space	4
-  34              		.global	cont
-  35              		.section	.bss.cont,"aw",%nobits
-  36              		.align	2
-  39              	cont:
-  40 0000 00000000 		.space	4
-  41              		.global	conf
-  42              		.section	.bss.conf,"aw",%nobits
+  32              	conf:
+  33 0000 00000000 		.space	8
+  33      00000000 
+  34              		.global	cont_b
+  35              		.section	.bss.cont_b,"aw",%nobits
+  36              		.align	1
+  39              	cont_b:
+  40 0000 0000     		.space	2
+  41              		.global	bitstream
+  42              		.section	.bss.bitstream,"aw",%nobits
   43              		.align	2
-  46              	conf:
-  47 0000 00000000 		.space	8
+  46              	bitstream:
+  47 0000 00000000 		.space	1000
   47      00000000 
-  48              		.global	bitstream
-  49              		.section	.bss.bitstream,"aw",%nobits
-  50              		.align	2
-  53              	bitstream:
-  54 0000 00000000 		.space	1000
-  54      00000000 
-  54      00000000 
-  54      00000000 
-  54      00000000 
-  55              		.global	filt_cnt
-  56              		.section	.bss.filt_cnt,"aw",%nobits
-  57              		.align	1
-  60              	filt_cnt:
-  61 0000 0000     		.space	2
-  62              		.section	.rodata.main.str1.4,"aMS",%progbits,1
-  63              		.align	2
-  64              	.LC0:
-  65 0000 4100     		.ascii	"A\000"
-  66 0002 0000     		.align	2
-  67              	.LC1:
-  68 0004 4200     		.ascii	"B\000"
-  69 0006 0000     		.align	2
-  70              	.LC2:
-  71 0008 4300     		.ascii	"C\000"
-  72              		.section	.text.main,"ax",%progbits
-  73              		.align	1
-  74              		.global	main
-  75              		.syntax unified
-  76              		.thumb
-  77              		.thumb_func
-  79              	main:
-  80              	.LFB123:
+  47      00000000 
+  47      00000000 
+  47      00000000 
+  48              		.global	filt_cnt
+  49              		.section	.bss.filt_cnt,"aw",%nobits
+  50              		.align	1
+  53              	filt_cnt:
+  54 0000 0000     		.space	2
+  55              		.section	.rodata.main.str1.4,"aMS",%progbits,1
+  56              		.align	2
+  57              	.LC0:
+  58 0000 4100     		.ascii	"A\000"
+  59 0002 0000     		.align	2
+  60              	.LC1:
+  61 0004 4200     		.ascii	"B\000"
+  62 0006 0000     		.align	2
+  63              	.LC2:
+  64 0008 4300     		.ascii	"C\000"
+  65 000a 0000     		.align	2
+  66              	.LC3:
+  67 000c 44203D20 		.ascii	"D = %d\012\000"
+  67      25640A00 
+  68              		.section	.text.main,"ax",%progbits
+  69              		.align	1
+  70              		.global	main
+  71              		.syntax unified
+  72              		.thumb
+  73              		.thumb_func
+  75              	main:
+  76              	.LFB123:
    1:../source/main.c **** /*
    2:../source/main.c ****  * main.c
    3:../source/main.c ****  *
@@ -90,195 +89,231 @@
   18:../source/main.c **** #include <stdbool.h>
   19:../source/main.c **** #include "demod.h"
   20:../source/main.c **** #define __FOREVER__ 	for(;;)
-  21:../source/main.c **** 
+  21:../source/main.c **** #define PERIODO_PRINT 1000
   22:../source/main.c **** 
-  23:../source/main.c **** ADCData_t data;
-  24:../source/main.c **** float dato;
-  25:../source/main.c **** uint32_t cont;
-  26:../source/main.c **** pdb_config_t conf;
-  27:../source/main.c **** 
-  28:../source/main.c **** uint8_t bitstream[1000];
-  29:../source/main.c **** uint16_t filt_cnt;
-  30:../source/main.c **** 
-  31:../source/main.c **** int main (void)
-  32:../source/main.c **** {
-  81              		.loc 1 32 1
-  82              		.cfi_startproc
-  83              		@ args = 0, pretend = 0, frame = 0
-  84              		@ frame_needed = 1, uses_anonymous_args = 0
-  85 0000 80B5     		push	{r7, lr}
-  86              		.cfi_def_cfa_offset 8
-  87              		.cfi_offset 7, -8
-  88              		.cfi_offset 14, -4
-  89 0002 00AF     		add	r7, sp, #0
-  90              		.cfi_def_cfa_register 7
-  33:../source/main.c ****  	 	 	 	hw_Init();
-  91              		.loc 1 33 9
-  92 0004 FFF7FEFF 		bl	hw_Init
-  34:../source/main.c ****  	 	 	 	PORT_Init();
-  93              		.loc 1 34 9
-  94 0008 FFF7FEFF 		bl	PORT_Init
-  35:../source/main.c ****  	 	 		//GPIO_Init();
-  36:../source/main.c ****  	 	 		serial_init(250000);
-  95              		.loc 1 36 8
-  96 000c 2348     		ldr	r0, .L4
-  97 000e FFF7FEFF 		bl	serial_init
-  37:../source/main.c ****  	 	 		//SysTick_Init();		//No quiero por software
-  38:../source/main.c **** 			#ifdef DEBUG_PIN
-  39:../source/main.c ****  	 	 		//GPIO_SetDirection(PTC, 12, GPIO_OUT(12));
-  40:../source/main.c ****  	 	 		gpioMode(PORTNUM2PIN(PB,DEBUG_PIN), OUTPUT);
-  98              		.loc 1 40 8
-  99 0012 0121     		movs	r1, #1
- 100 0014 3720     		movs	r0, #55
- 101 0016 FFF7FEFF 		bl	gpioMode
-  41:../source/main.c **** 			#endif
-  42:../source/main.c **** 			#ifdef DEBUG_PIN12C
-  43:../source/main.c **** 					//GPIO_SetDirection(PTC, 12, GPIO_OUT(12));
-  44:../source/main.c **** 					gpioMode(PORTNUM2PIN(PC,DEBUG_PIN12C), OUTPUT);
- 102              		.loc 1 44 6
- 103 001a 0121     		movs	r1, #1
- 104 001c 4C20     		movs	r0, #76
- 105 001e FFF7FEFF 		bl	gpioMode
-  45:../source/main.c **** 			#endif
-  46:../source/main.c ****  	 	 		//settings for sample freq of 12kHz
-  47:../source/main.c ****  	 	 		conf.mod = 2083U;
- 106              		.loc 1 47 17
- 107 0022 1F4B     		ldr	r3, .L4+4
- 108 0024 40F62302 		movw	r2, #2083
- 109 0028 5A80     		strh	r2, [r3, #2]	@ movhi
-  48:../source/main.c ****  	 	 		conf.mult = PDB_MULTIPLIER_1;
- 110              		.loc 1 48 18
- 111 002a 1D4B     		ldr	r3, .L4+4
- 112 002c 0022     		movs	r2, #0
- 113 002e 5A70     		strb	r2, [r3, #1]
-  49:../source/main.c ****  	 	 		conf.prescaler = PDB_PRESCALER_2;
- 114              		.loc 1 49 23
- 115 0030 1B4B     		ldr	r3, .L4+4
- 116 0032 0122     		movs	r2, #1
- 117 0034 1A70     		strb	r2, [r3]
-  50:../source/main.c **** 
-  51:../source/main.c ****  	 	 		conf.trigger = PDB_TRIGG_SW;
+  23:../source/main.c **** 
+  24:../source/main.c **** uint32_t cont;
+  25:../source/main.c **** pdb_config_t conf;
+  26:../source/main.c **** uint16_t cont_b;
+  27:../source/main.c **** uint8_t bitstream[1000];
+  28:../source/main.c **** uint16_t filt_cnt;
+  29:../source/main.c **** 
+  30:../source/main.c **** int main (void)
+  31:../source/main.c **** {
+  77              		.loc 1 31 1
+  78              		.cfi_startproc
+  79              		@ args = 0, pretend = 0, frame = 0
+  80              		@ frame_needed = 1, uses_anonymous_args = 0
+  81 0000 80B5     		push	{r7, lr}
+  82              		.cfi_def_cfa_offset 8
+  83              		.cfi_offset 7, -8
+  84              		.cfi_offset 14, -4
+  85 0002 00AF     		add	r7, sp, #0
+  86              		.cfi_def_cfa_register 7
+  32:../source/main.c ****  	 	 	 	hw_Init();
+  87              		.loc 1 32 9
+  88 0004 FFF7FEFF 		bl	hw_Init
+  33:../source/main.c ****  	 	 	 	PORT_Init();
+  89              		.loc 1 33 9
+  90 0008 FFF7FEFF 		bl	PORT_Init
+  34:../source/main.c ****  	 	 		//GPIO_Init();
+  35:../source/main.c ****  	 	 		serial_init(250000);
+  91              		.loc 1 35 8
+  92 000c 3048     		ldr	r0, .L5
+  93 000e FFF7FEFF 		bl	serial_init
+  36:../source/main.c ****  	 	 		//SysTick_Init();		//No quiero por software
+  37:../source/main.c **** 			#ifdef DEBUG_PIN
+  38:../source/main.c ****  	 	 		//GPIO_SetDirection(PTC, 12, GPIO_OUT(12));
+  39:../source/main.c ****  	 	 		gpioMode(PORTNUM2PIN(PB,DEBUG_PIN), OUTPUT);
+  94              		.loc 1 39 8
+  95 0012 0121     		movs	r1, #1
+  96 0014 3720     		movs	r0, #55
+  97 0016 FFF7FEFF 		bl	gpioMode
+  40:../source/main.c **** 			#endif
+  41:../source/main.c **** 			#ifdef DEBUG_PIN12C
+  42:../source/main.c **** 					//GPIO_SetDirection(PTC, 12, GPIO_OUT(12));
+  43:../source/main.c **** 					gpioMode(PORTNUM2PIN(PC,DEBUG_PIN12C), OUTPUT);
+  98              		.loc 1 43 6
+  99 001a 0121     		movs	r1, #1
+ 100 001c 4C20     		movs	r0, #76
+ 101 001e FFF7FEFF 		bl	gpioMode
+  44:../source/main.c **** 			#endif
+  45:../source/main.c ****  	 	 		//settings for sample freq of 12kHz
+  46:../source/main.c ****  	 	 		conf.mod = 2083U;
+ 102              		.loc 1 46 17
+ 103 0022 2C4B     		ldr	r3, .L5+4
+ 104 0024 40F62302 		movw	r2, #2083
+ 105 0028 5A80     		strh	r2, [r3, #2]	@ movhi
+  47:../source/main.c ****  	 	 		conf.mult = PDB_MULTIPLIER_1;
+ 106              		.loc 1 47 18
+ 107 002a 2A4B     		ldr	r3, .L5+4
+ 108 002c 0022     		movs	r2, #0
+ 109 002e 5A70     		strb	r2, [r3, #1]
+  48:../source/main.c ****  	 	 		conf.prescaler = PDB_PRESCALER_2;
+ 110              		.loc 1 48 23
+ 111 0030 284B     		ldr	r3, .L5+4
+ 112 0032 0122     		movs	r2, #1
+ 113 0034 1A70     		strb	r2, [r3]
+  49:../source/main.c **** 
+  50:../source/main.c ****  	 	 		conf.trigger = PDB_TRIGG_SW;
+ 114              		.loc 1 50 21
+ 115 0036 274B     		ldr	r3, .L5+4
+ 116 0038 0F22     		movs	r2, #15
+ 117 003a 1A71     		strb	r2, [r3, #4]
+  51:../source/main.c ****  	 	 		conf.channel = PDB0_CH0;
  118              		.loc 1 51 21
- 119 0036 1A4B     		ldr	r3, .L4+4
- 120 0038 0F22     		movs	r2, #15
- 121 003a 1A71     		strb	r2, [r3, #4]
-  52:../source/main.c ****  	 	 		conf.channel = PDB0_CH0;
- 122              		.loc 1 52 21
- 123 003c 184B     		ldr	r3, .L4+4
- 124 003e 0022     		movs	r2, #0
- 125 0040 5A71     		strb	r2, [r3, #5]
-  53:../source/main.c ****  	 	 		conf.pretrigger = PDB0_PRETRIGGER_A;
- 126              		.loc 1 53 24
- 127 0042 174B     		ldr	r3, .L4+4
- 128 0044 0022     		movs	r2, #0
- 129 0046 9A71     		strb	r2, [r3, #6]
-  54:../source/main.c ****  	 	 		pdb_init(1,0, conf);
- 130              		.loc 1 54 8
- 131 0048 154B     		ldr	r3, .L4+4
- 132 004a 0CCB     		ldm	r3, {r2, r3}
- 133 004c 0021     		movs	r1, #0
- 134 004e 0120     		movs	r0, #1
- 135 0050 FFF7FEFF 		bl	pdb_init
-  55:../source/main.c ****  	 	 		pdb_set_delay(PDB0_CH0, PDB0_PRETRIGGER_A, 2);
- 136              		.loc 1 55 8
- 137 0054 0222     		movs	r2, #2
- 138 0056 0021     		movs	r1, #0
- 139 0058 0020     		movs	r0, #0
- 140 005a FFF7FEFF 		bl	pdb_set_delay
-  56:../source/main.c ****  	 	 		demod_init(bitstream);
- 141              		.loc 1 56 8
- 142 005e 1148     		ldr	r0, .L4+8
- 143 0060 FFF7FEFF 		bl	demod_init
-  57:../source/main.c ****  	 	 		ADC_Init(true);
- 144              		.loc 1 57 8
- 145 0064 0120     		movs	r0, #1
- 146 0066 FFF7FEFF 		bl	ADC_Init
-  58:../source/main.c **** 
-  59:../source/main.c ****  	 	 		do_software_trigger();
- 147              		.loc 1 59 8
- 148 006a FFF7FEFF 		bl	do_software_trigger
-  60:../source/main.c ****  	 	 		//ADC_Calibrate(ADC0);
-  61:../source/main.c **** 				serial_print("A");
- 149              		.loc 1 61 5
- 150 006e 0E48     		ldr	r0, .L4+12
- 151 0070 FFF7FEFF 		bl	serial_print
-  62:../source/main.c **** 				serial_print("B");
- 152              		.loc 1 62 5
- 153 0074 0D48     		ldr	r0, .L4+16
- 154 0076 FFF7FEFF 		bl	serial_print
-  63:../source/main.c **** 				serial_print("C");
- 155              		.loc 1 63 5
- 156 007a 0D48     		ldr	r0, .L4+20
- 157 007c FFF7FEFF 		bl	serial_print
- 158              	.L3:
+ 119 003c 254B     		ldr	r3, .L5+4
+ 120 003e 0022     		movs	r2, #0
+ 121 0040 5A71     		strb	r2, [r3, #5]
+  52:../source/main.c ****  	 	 		conf.pretrigger = PDB0_PRETRIGGER_A;
+ 122              		.loc 1 52 24
+ 123 0042 244B     		ldr	r3, .L5+4
+ 124 0044 0022     		movs	r2, #0
+ 125 0046 9A71     		strb	r2, [r3, #6]
+  53:../source/main.c ****  	 	 		pdb_init(1,0, conf);
+ 126              		.loc 1 53 8
+ 127 0048 224B     		ldr	r3, .L5+4
+ 128 004a 0CCB     		ldm	r3, {r2, r3}
+ 129 004c 0021     		movs	r1, #0
+ 130 004e 0120     		movs	r0, #1
+ 131 0050 FFF7FEFF 		bl	pdb_init
+  54:../source/main.c ****  	 	 		pdb_set_delay(PDB0_CH0, PDB0_PRETRIGGER_A, 2);
+ 132              		.loc 1 54 8
+ 133 0054 0222     		movs	r2, #2
+ 134 0056 0021     		movs	r1, #0
+ 135 0058 0020     		movs	r0, #0
+ 136 005a FFF7FEFF 		bl	pdb_set_delay
+  55:../source/main.c ****  	 	 		demod_init(bitstream);
+ 137              		.loc 1 55 8
+ 138 005e 1E48     		ldr	r0, .L5+8
+ 139 0060 FFF7FEFF 		bl	demod_init
+  56:../source/main.c ****  	 	 		ADC_Init(true);
+ 140              		.loc 1 56 8
+ 141 0064 0120     		movs	r0, #1
+ 142 0066 FFF7FEFF 		bl	ADC_Init
+  57:../source/main.c **** 
+  58:../source/main.c ****  	 	 		do_software_trigger();
+ 143              		.loc 1 58 8
+ 144 006a FFF7FEFF 		bl	do_software_trigger
+  59:../source/main.c ****  	 	 		//ADC_Calibrate(ADC0);
+  60:../source/main.c **** 				serial_print("A");
+ 145              		.loc 1 60 5
+ 146 006e 1B48     		ldr	r0, .L5+12
+ 147 0070 FFF7FEFF 		bl	serial_print
+  61:../source/main.c **** 				serial_print("B");
+ 148              		.loc 1 61 5
+ 149 0074 1A48     		ldr	r0, .L5+16
+ 150 0076 FFF7FEFF 		bl	serial_print
+  62:../source/main.c **** 				serial_print("C");
+ 151              		.loc 1 62 5
+ 152 007a 1A48     		ldr	r0, .L5+20
+ 153 007c FFF7FEFF 		bl	serial_print
+ 154              	.L4:
+  63:../source/main.c **** 
   64:../source/main.c **** 
   65:../source/main.c **** 
-  66:../source/main.c **** 
-  67:../source/main.c ****  	 	// 		hw_DisableInterrupts();
-  68:../source/main.c **** 
-  69:../source/main.c ****  	 	 		__FOREVER__{
-  70:../source/main.c **** 					cont = get_unfiltered_count();
- 159              		.loc 1 70 13
- 160 0080 FFF7FEFF 		bl	get_unfiltered_count
- 161 0084 0346     		mov	r3, r0
- 162              		.loc 1 70 13 is_stmt 0 discriminator 1
- 163 0086 1A46     		mov	r2, r3
- 164              		.loc 1 70 11 is_stmt 1 discriminator 1
- 165 0088 0A4B     		ldr	r3, .L4+24
- 166 008a 1A60     		str	r2, [r3]
-  71:../source/main.c ****  	 	 				if(cont >= 2){
- 167              		.loc 1 71 18
- 168 008c 094B     		ldr	r3, .L4+24
- 169 008e 1B68     		ldr	r3, [r3]
- 170              		.loc 1 71 12
- 171 0090 012B     		cmp	r3, #1
- 172 0092 F5D9     		bls	.L3
-  72:../source/main.c ****  	 	 					filter_data();
- 173              		.loc 1 72 11
- 174 0094 FFF7FEFF 		bl	filter_data
-  70:../source/main.c ****  	 	 				if(cont >= 2){
- 175              		.loc 1 70 11
- 176 0098 F2E7     		b	.L3
- 177              	.L5:
- 178 009a 00BF     		.align	2
- 179              	.L4:
- 180 009c 90D00300 		.word	250000
- 181 00a0 00000000 		.word	conf
- 182 00a4 00000000 		.word	bitstream
- 183 00a8 00000000 		.word	.LC0
- 184 00ac 04000000 		.word	.LC1
- 185 00b0 08000000 		.word	.LC2
- 186 00b4 00000000 		.word	cont
- 187              		.cfi_endproc
- 188              	.LFE123:
- 190              		.text
- 191              	.Letext0:
- 192              		.file 2 "C:/nxp/MCUXpressoIDE_11.10.0_3148/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.10.0.2023
- 193              		.file 3 "../source/gpio/gpio.h"
- 194              		.file 4 "../source/ADC.h"
- 195              		.file 5 "../source/./pdb/pdb.h"
- 196              		.file 6 "../source/demod.h"
- 197              		.file 7 "../source/serial/serial.h"
- 198              		.file 8 "../source/PORT.h"
- 199              		.file 9 "../source/hardware.h"
+  66:../source/main.c ****  	 	// 		hw_DisableInterrupts();
+  67:../source/main.c **** 
+  68:../source/main.c ****  	 	 		__FOREVER__{
+  69:../source/main.c **** 					cont = get_unfiltered_count();
+ 155              		.loc 1 69 13
+ 156 0080 FFF7FEFF 		bl	get_unfiltered_count
+ 157 0084 0346     		mov	r3, r0
+ 158              		.loc 1 69 13 is_stmt 0 discriminator 1
+ 159 0086 1A46     		mov	r2, r3
+ 160              		.loc 1 69 11 is_stmt 1 discriminator 1
+ 161 0088 174B     		ldr	r3, .L5+24
+ 162 008a 1A60     		str	r2, [r3]
+  70:../source/main.c **** 					if(cont >= 2){
+ 163              		.loc 1 70 14
+ 164 008c 164B     		ldr	r3, .L5+24
+ 165 008e 1B68     		ldr	r3, [r3]
+ 166              		.loc 1 70 8
+ 167 0090 012B     		cmp	r3, #1
+ 168 0092 01D9     		bls	.L2
+  71:../source/main.c **** 						filter_data();
+ 169              		.loc 1 71 7
+ 170 0094 FFF7FEFF 		bl	filter_data
+ 171              	.L2:
+  72:../source/main.c **** 					}
+  73:../source/main.c **** 					if(is_data_ready()){
+ 172              		.loc 1 73 9
+ 173 0098 FFF7FEFF 		bl	is_data_ready
+ 174 009c 0346     		mov	r3, r0
+ 175              		.loc 1 73 8 discriminator 1
+ 176 009e 002B     		cmp	r3, #0
+ 177 00a0 EED0     		beq	.L4
+  74:../source/main.c **** 						cont_b++;
+ 178              		.loc 1 74 13
+ 179 00a2 124B     		ldr	r3, .L5+28
+ 180 00a4 1B88     		ldrh	r3, [r3]
+ 181 00a6 0133     		adds	r3, r3, #1
+ 182 00a8 9AB2     		uxth	r2, r3
+ 183 00aa 104B     		ldr	r3, .L5+28
+ 184 00ac 1A80     		strh	r2, [r3]	@ movhi
+  75:../source/main.c **** 						if(cont_b == PERIODO_PRINT){
+ 185              		.loc 1 75 17
+ 186 00ae 0F4B     		ldr	r3, .L5+28
+ 187 00b0 1B88     		ldrh	r3, [r3]
+ 188              		.loc 1 75 9
+ 189 00b2 B3F57A7F 		cmp	r3, #1000
+ 190 00b6 E3D1     		bne	.L4
+  76:../source/main.c **** 						cont_b=0;
+ 191              		.loc 1 76 13
+ 192 00b8 0C4B     		ldr	r3, .L5+28
+ 193 00ba 0022     		movs	r2, #0
+ 194 00bc 1A80     		strh	r2, [r3]	@ movhi
+  77:../source/main.c **** 						serial_printf("D = %d\n", get_data_byte());
+ 195              		.loc 1 77 33
+ 196 00be FFF7FEFF 		bl	get_data_byte
+ 197 00c2 0346     		mov	r3, r0
+ 198              		.loc 1 77 7 discriminator 1
+ 199 00c4 1946     		mov	r1, r3
+ 200 00c6 0A48     		ldr	r0, .L5+32
+ 201 00c8 FFF7FEFF 		bl	serial_printf
+  69:../source/main.c **** 					if(cont >= 2){
+ 202              		.loc 1 69 11
+ 203 00cc D8E7     		b	.L4
+ 204              	.L6:
+ 205 00ce 00BF     		.align	2
+ 206              	.L5:
+ 207 00d0 90D00300 		.word	250000
+ 208 00d4 00000000 		.word	conf
+ 209 00d8 00000000 		.word	bitstream
+ 210 00dc 00000000 		.word	.LC0
+ 211 00e0 04000000 		.word	.LC1
+ 212 00e4 08000000 		.word	.LC2
+ 213 00e8 00000000 		.word	cont
+ 214 00ec 00000000 		.word	cont_b
+ 215 00f0 0C000000 		.word	.LC3
+ 216              		.cfi_endproc
+ 217              	.LFE123:
+ 219              		.text
+ 220              	.Letext0:
+ 221              		.file 2 "C:/nxp/MCUXpressoIDE_11.10.0_3148/ide/plugins/com.nxp.mcuxpresso.tools.win32_11.10.0.2023
+ 222              		.file 3 "../source/gpio/gpio.h"
+ 223              		.file 4 "../source/./pdb/pdb.h"
+ 224              		.file 5 "../source/demod.h"
+ 225              		.file 6 "../source/serial/serial.h"
+ 226              		.file 7 "../source/ADC.h"
+ 227              		.file 8 "../source/PORT.h"
+ 228              		.file 9 "../source/hardware.h"
 DEFINED SYMBOLS
                             *ABS*:00000000 main.c
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:25     .bss.data:00000000 data
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:22     .bss.data:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:32     .bss.dato:00000000 dato
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:29     .bss.dato:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:39     .bss.cont:00000000 cont
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:36     .bss.cont:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:46     .bss.conf:00000000 conf
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:43     .bss.conf:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:53     .bss.bitstream:00000000 bitstream
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:50     .bss.bitstream:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:60     .bss.filt_cnt:00000000 filt_cnt
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:57     .bss.filt_cnt:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:63     .rodata.main.str1.4:00000000 $d
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:73     .text.main:00000000 $t
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:79     .text.main:00000000 main
-C:\Users\casas\AppData\Local\Temp\ccsBplca.s:180    .text.main:0000009c $d
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:25     .bss.cont:00000000 cont
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:22     .bss.cont:00000000 $d
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:32     .bss.conf:00000000 conf
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:29     .bss.conf:00000000 $d
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:39     .bss.cont_b:00000000 cont_b
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:36     .bss.cont_b:00000000 $d
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:46     .bss.bitstream:00000000 bitstream
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:43     .bss.bitstream:00000000 $d
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:53     .bss.filt_cnt:00000000 filt_cnt
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:50     .bss.filt_cnt:00000000 $d
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:56     .rodata.main.str1.4:00000000 $d
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:69     .text.main:00000000 $t
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:75     .text.main:00000000 main
+C:\Users\casas\AppData\Local\Temp\cc8LTjZX.s:207    .text.main:000000d0 $d
                            .group:00000000 wm4.0.1dcc4abb7b230aa9a5dadaa004994123
                            .group:00000000 wm4.redlib_version.h.25.d2e865e22c1528eeae52d7d98a50fff1
                            .group:00000000 wm4.libconfigarm.h.19.34723c94cbd19598192aa6b1e87fca41
@@ -299,7 +334,7 @@ C:\Users\casas\AppData\Local\Temp\ccsBplca.s:180    .text.main:0000009c $d
                            .group:00000000 wm4.stdio.h.45.f451916e772fb1711dab452062404594
                            .group:00000000 wm4.stdarg.h.28.d8f3211cadb58bc5b5d9912f510a3ed1
                            .group:00000000 wm4.pdb.h.22.34ae618ef6a00e35529519f193427cf7
-                           .group:00000000 wm4.demod.h.2.bc5398c2542440b6b4566454651fb434
+                           .group:00000000 wm4.demod.h.2.8c4a1a324dc06ae4a30701ec83fd174f
 
 UNDEFINED SYMBOLS
 hw_Init
@@ -314,3 +349,6 @@ do_software_trigger
 serial_print
 get_unfiltered_count
 filter_data
+is_data_ready
+get_data_byte
+serial_printf

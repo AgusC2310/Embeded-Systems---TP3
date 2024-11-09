@@ -108,6 +108,7 @@ bool is_data_ready(void){
 }
 
 uint8_t get_data_byte(void){
+	data_ready = false;
 	return data_byte;
 }
 

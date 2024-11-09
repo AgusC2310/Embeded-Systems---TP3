@@ -18,13 +18,12 @@
 #include <stdbool.h>
 #include "demod.h"
 #define __FOREVER__ 	for(;;)
+#define PERIODO_PRINT 100
 
 
-ADCData_t data;
-float dato;
 uint32_t cont;
 pdb_config_t conf;
-
+uint16_t cont_b;
 uint8_t bitstream[1000];
 uint16_t filt_cnt;
 
@@ -72,7 +71,11 @@ int main (void)
 						filter_data();
 					}
 					if(is_data_ready()){
+						cont_b++;
+						if(cont_b == PERIODO_PRINT){
+						cont_b=0;
 						serial_printf("D = %d\n", get_data_byte());
+						}
 					}
 				}
 

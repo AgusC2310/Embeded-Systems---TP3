@@ -1,5 +1,7 @@
-../source/demod.c:44:6:demod_init	16	static
-../source/demod.c:49:9:filter_data	24	static
-../source/demod.c:92:6:add_data	16	static
-../source/demod.c:103:10:get_unfiltered_count	4	static
-../source/demod.c:107:6:data_fsm	16	static
+../source/demod.c:43:6:demod_init	16	static
+../source/demod.c:48:9:filter_data	24	static
+../source/demod.c:91:6:add_data	16	static
+../source/demod.c:102:10:get_unfiltered_count	4	static
+../source/demod.c:106:6:is_data_ready	4	static
+../source/demod.c:110:9:get_data_byte	4	static
+../source/demod.c:115:6:data_fsm	16	static
