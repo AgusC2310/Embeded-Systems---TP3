@@ -68,10 +68,13 @@ int main (void)
 
  	 	 		__FOREVER__{
 					cont = get_unfiltered_count();
- 	 	 				if(cont >= 2){
- 	 	 					filter_data();
- 	 	 				}
- 	 	 			}
+					if(cont >= 2){
+						filter_data();
+					}
+					if(is_data_ready()){
+						serial_printf("D = %d\n", get_data_byte());
+					}
+				}
 
 			// Enable interrupts
 			//hw_EnableInterrupts();

@@ -2,6 +2,7 @@
 #define DEMOD_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #define FILTER_SIZE 18
 #define BUFFER_SIZE 100
 #define BITSTREAM_SIZE 1000
@@ -15,7 +16,9 @@
 
 #define LOGIC_0 0
 #define LOGIC_1 1
-#define PARITY_VALUE 1		// 1 for odd parity, 0 for even.
+#define EVEN_PAR 0
+#define ODD_PAR 1
+#define PARITY_VALUE ODD_PAR		// 1 for odd parity, 0 for even.
 
 //macro for circular buffer index update. ind = previous index. size = number of elements in the array. returns 0 when ind==(size-1)
 #define UPDATE_INDEX(ind, size) (((ind)==((size)-1)) ? 0 : (ind+1))
@@ -51,5 +54,10 @@ void demod_init( uint8_t* demod_bitstream_ptr);
 uint8_t filter_data (void);
 
 uint16_t get_unfiltered_count(void);
+
+bool is_data_ready(void);
+
+uint8_t get_data_byte(void);
+
 
 #endif

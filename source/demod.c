@@ -1,8 +1,6 @@
 #include "demod.h" 
 #include "ADC.h"
-#include <stdint.h>
-#include <stdbool.h>
-//hola
+
 
 void add_data(uint16_t new_data);
 void data_fsm(uint8_t data_in);
@@ -32,13 +30,14 @@ static uint16_t demod_write_index;		//
 static uint8_t current_state;			//State of the hysteresis trigger
 static uint16_t unfiltered_data_count;	//number of data samples that were not filtered
 
-static COMM_STATE_t stream_state;	//idle state. 1 if no transmission is occurring at the moment (idle). 0 otherwise.
+static COMM_STATE_t stream_state;	//State of the transmission according to the enum COMM_STATE_t.
 static uint8_t sample_count;			//counter for the number of samples in a bit.
 static uint8_t bit_count;			//counter of bits in a message to find the end bit.
 static uint8_t zero_count;			//counter for the amount of 0s in the start bit
 static uint8_t parity;				//variable to calculate parity.
 static uint8_t error_flag;			//Error from parity or lack of end bit.
 static uint8_t data_byte;			//data byte demodulated
+static bool data_ready;				//flag that indicates data is ready to be read.
 
 
 void demod_init( uint8_t* demod_bitstream_ptr){
@@ -104,6 +103,14 @@ uint16_t get_unfiltered_count(void){
 	return unfiltered_data_count;
 }
 
+bool is_data_ready(void){
+	return data_ready;
+}
+
+uint8_t get_data_byte(void){
+	return data_byte;
+}
+
 void data_fsm(uint8_t data_in){
 	switch(stream_state){
 	case IDLE:
@@ -123,6 +130,7 @@ void data_fsm(uint8_t data_in){
 				stream_state = RECIEVING;	//mayority of the sampled bits are 0. start is considered
 				error_flag=0;
 				data_byte =0;
+				data_ready = false;
 			}
 			else{
 				stream_state = IDLE;		//considered a false start
@@ -204,6 +212,9 @@ void data_fsm(uint8_t data_in){
 			zero_count =0;			//Restart counters
 			sample_count=0;
 			stream_state = IDLE;
+			if(error_flag == NO_ERR){
+				data_ready = true;
+			}
 		}
 		break;
 
